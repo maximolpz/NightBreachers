@@ -25,6 +25,7 @@ aside h2{font-size:13px;color:var(--dim);margin:8px 0 2px;font-weight:600}
 .ch{text-align:left;width:100%;border:0;background:none}
 .ch.on{background:var(--panel2);color:var(--acc)}
 main{display:flex;flex-direction:column;min-width:0}
+main.drop-target{outline:2px dashed var(--acc);outline-offset:-6px}
 #bar{padding:10px 14px;border-bottom:1px solid var(--line);display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 #bar b{margin-right:auto}
 #stage{display:none;gap:8px;padding:8px;background:#000;flex-wrap:wrap;max-height:45%;overflow:auto}
@@ -71,13 +72,13 @@ main{display:flex;flex-direction:column;min-width:0}
       <button id="bMute" disabled>Silenciar</button>
       <button id="bScr">Compartir pantalla</button>
       <button id="bFile">Enviar archivo</button>
-      <input type="file" id="file" hidden>
+      <input type="file" id="file" multiple hidden>
     </div>
     <div id="prog"></div>
     <div id="stage"></div>
     <div id="msgs" aria-live="polite"></div>
     <div id="send">
-      <input id="txt" placeholder="Escribí un mensaje" autocomplete="off">
+      <input id="txt" placeholder="Escribí, pegá una imagen o arrastrá archivos" autocomplete="off">
       <button class="on" id="bSend">Enviar</button>
     </div>
   </main>
@@ -93,10 +94,13 @@ import { joinRoom, selfId } from 'https://cdn.jsdelivr.net/npm/trystero@0.21.5/t
 const $ = id => document.getElementById(id)
 const CANALES = ['general', 'juegos', 'musica']
 const CHUNK = 256 * 1024
-let cfg, room, canal, nick, acts = {}
+let cfg, room, voiceRoom, canal, nick, acts = {}
 let peers = {}            // id -> {nick}
+let channelPeers = new Set()
 let mic = null, screen = null
 let streams = {}          // id -> {voz, pantalla}
+let fileQueue = Promise.resolve()
+let progressTimer
 
 const rtcConfig = { iceServers: [
   { urls: 'stun:stun.l.google.com:19302' },
@@ -117,6 +121,7 @@ $('f').onsubmit = e => {
     b.onclick = () => entrar(c)
     $('chs').append(b)
   })
+  iniciarVoz()
   entrar('general')
 }
 
@@ -139,24 +144,21 @@ function pintarPeers() {
   $('status').textContent = Object.keys(peers).length ? Object.keys(peers).length + ' amigo(s) conectado(s)' : 'Buscando amigos…'
 }
 
-async function entrar(c) {
-  if (room) { await pararMedia(); room.leave() }
-  canal = c; peers = {}; streams = {}; $('stage').innerHTML = ''; $('stage').style.display = 'none'
+function entrar(c) {
+  if (room) room.leave()
+  channelPeers = new Set()
+  canal = c
   $('msgs').innerHTML = ''
   document.querySelectorAll('.ch').forEach(b => b.classList.toggle('on', b.dataset.c === c))
   $('title').textContent = '# ' + c
   room = joinRoom(cfg, c)
 
   const [sendMsg, onMsg] = room.makeAction('chat')
-  const [sendPerfil, onPerfil] = room.makeAction('perfil')
   const [sendFile, onFile] = room.makeAction('archivo')
-  acts = { sendMsg, sendPerfil, sendFile }
+  acts = { sendMsg, sendFile }
 
-  room.onPeerJoin(id => { sendPerfil({ nick }, id); sys('Alguien entró, esperando su apodo…'); peers[id] = peers[id] || {}; pintarPeers()
-    if (mic) room.addStream(mic, id, { tipo: 'voz' })
-    if (screen) room.addStream(screen, id, { tipo: 'pantalla' }) })
-  room.onPeerLeave(id => { sys((peers[id]?.nick || 'Alguien') + ' salió'); delete peers[id]; quitarStream(id); pintarPeers() })
-  onPerfil((p, id) => { peers[id] = { nick: String(p.nick).slice(0, 20) }; sys(peers[id].nick + ' entró'); pintarPeers() })
+  room.onPeerJoin(id => channelPeers.add(id))
+  room.onPeerLeave(id => channelPeers.delete(id))
   onMsg((t, id) => add('', peers[id]?.nick || 'alguien', String(t)))
 
   // Archivos: se reciben en pedazos y se arma el Blob al final
@@ -174,8 +176,33 @@ async function entrar(c) {
     }
   })
 
-  room.onPeerStream((stream, id, meta) => mostrarStream(stream, id, meta || {}))
-  pintarPeers(); sys('Entraste a #' + c + '. Los mensajes no se guardan.')
+  sys('Entraste a #' + c + '. Los mensajes no se guardan.')
+}
+
+function iniciarVoz() {
+  voiceRoom = joinRoom(cfg, 'voz')
+  const [sendPerfil, onPerfil] = voiceRoom.makeAction('perfil')
+
+  voiceRoom.onPeerJoin(id => {
+    sendPerfil({ nick }, id)
+    peers[id] = peers[id] || {}
+    pintarPeers()
+    if (mic) voiceRoom.addStream(mic, id, { tipo: 'voz' })
+    if (screen) voiceRoom.addStream(screen, id, { tipo: 'pantalla' })
+  })
+  voiceRoom.onPeerLeave(id => {
+    sys((peers[id]?.nick || 'Alguien') + ' salió')
+    delete peers[id]
+    quitarStream(id)
+    pintarPeers()
+  })
+  onPerfil((p, id) => {
+    peers[id] = { nick: String(p.nick).slice(0, 20) }
+    sys(peers[id].nick + ' entró')
+    pintarPeers()
+  })
+  voiceRoom.onPeerStream((stream, id, meta) => mostrarStream(stream, id, meta || {}))
+  pintarPeers()
 }
 
 // Chat
@@ -188,20 +215,85 @@ $('txt').onkeydown = e => { if (e.key === 'Enter') mandar() }
 
 // Archivos
 $('bFile').onclick = () => $('file').click()
-$('file').onchange = async e => {
-  const f = e.target.files[0]; if (!f) return
-  if (!Object.keys(peers).length) { sys('No hay nadie conectado para recibirlo.'); return }
-  const total = Math.ceil(f.size / CHUNK), fid = Math.random().toString(36).slice(2)
-  sys('Enviando ' + f.name + '…')
-  for (let i = 0; i < total; i++) {
-    const buf = await f.slice(i * CHUNK, (i + 1) * CHUNK).arrayBuffer()
-    await acts.sendFile(buf, null, { fid, total, nombre: f.name, size: f.size })
-    $('prog').style.width = ((i + 1) / total * 100) + '%'
-  }
-  setTimeout(() => $('prog').style.width = 0, 800)
-  sys('Enviado: ' + f.name + '. Mantené la pestaña abierta hasta que terminen de recibirlo.')
+$('file').onchange = e => {
+  const files = Array.from(e.target.files)
   e.target.value = ''
+  enviarArchivos(files)
 }
+
+function enviarArchivos(files) {
+  if (!files.length) return
+  if (!channelPeers.size) { sys('No hay nadie conectado en este canal para recibir archivos.'); return }
+  const transferRoom = room, sendFile = acts.sendFile
+  fileQueue = fileQueue.then(() => enviarArchivosEnCola(files, transferRoom, sendFile)).catch(error => {
+    console.error('Error al enviar archivos:', error)
+    sys('Ocurrió un error al enviar los archivos.')
+  })
+}
+
+async function enviarArchivosEnCola(files, transferRoom, sendFile) {
+  if (room !== transferRoom) {
+    sys('Se canceló el envío porque cambiaste de canal.')
+    return
+  }
+  clearTimeout(progressTimer)
+  $('prog').style.width = 0
+  for (const f of files) {
+    const total = Math.max(1, Math.ceil(f.size / CHUNK)), fid = Math.random().toString(36).slice(2)
+    sys('Enviando ' + f.name + '…')
+    try {
+      for (let i = 0; i < total; i++) {
+        if (room !== transferRoom) {
+          $('prog').style.width = 0
+          sys('Se canceló el envío porque cambiaste de canal.')
+          return
+        }
+        const buf = await f.slice(i * CHUNK, (i + 1) * CHUNK).arrayBuffer()
+        await sendFile(buf, null, { fid, total, nombre: f.name, size: f.size })
+        $('prog').style.width = ((i + 1) / total * 100) + '%'
+      }
+      sys('Enviado: ' + f.name + '. Mantené la pestaña abierta hasta que terminen de recibirlo.')
+    } catch (error) {
+      console.error('No se pudo enviar ' + f.name + ':', error)
+      sys('No se pudo enviar ' + f.name + '.')
+    }
+  }
+  progressTimer = setTimeout(() => $('prog').style.width = 0, 800)
+}
+
+const main = document.querySelector('main')
+main.addEventListener('paste', e => {
+  const items = Array.from(e.clipboardData?.items || [])
+  let files = items.filter(item => item.kind === 'file').map(item => item.getAsFile()).filter(Boolean)
+  if (!files.length) files = Array.from(e.clipboardData?.files || [])
+  if (!files.length) return
+  e.preventDefault()
+  enviarArchivos(files.map((file, i) => {
+    if (file.name) return file
+    const extension = { 'image/jpeg': 'jpg', 'image/gif': 'gif', 'image/webp': 'webp' }[file.type] || 'png'
+    return new File([file], 'imagen-' + Date.now() + '-' + (i + 1) + '.' + extension, { type: file.type })
+  }))
+})
+
+main.addEventListener('dragenter', e => {
+  if (!Array.from(e.dataTransfer?.types || []).includes('Files')) return
+  e.preventDefault()
+  main.classList.add('drop-target')
+})
+main.addEventListener('dragover', e => {
+  if (!Array.from(e.dataTransfer?.types || []).includes('Files')) return
+  e.preventDefault()
+  e.dataTransfer.dropEffect = 'copy'
+  main.classList.add('drop-target')
+})
+main.addEventListener('dragleave', e => {
+  if (!(e.relatedTarget instanceof Node) || !main.contains(e.relatedTarget)) main.classList.remove('drop-target')
+})
+main.addEventListener('drop', e => {
+  e.preventDefault()
+  main.classList.remove('drop-target')
+  enviarArchivos(Array.from(e.dataTransfer?.files || []))
+})
 
 // Voz y pantalla
 function mostrarStream(stream, id, meta) {
@@ -221,11 +313,11 @@ function quitarStream(id) {
 }
 
 $('bMic').onclick = async () => {
-  if (mic) { room.removeStream(mic); mic.getTracks().forEach(t => t.stop()); mic = null
+  if (mic) { voiceRoom.removeStream(mic); mic.getTracks().forEach(t => t.stop()); mic = null
     $('bMic').textContent = 'Activar voz'; $('bMic').classList.remove('on'); $('bMute').disabled = true; return }
   try {
     mic = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } })
-    room.addStream(mic, null, { tipo: 'voz' })
+    voiceRoom.addStream(mic, null, { tipo: 'voz' })
     $('bMic').textContent = 'Salir de voz'; $('bMic').classList.add('on'); $('bMute').disabled = false
   } catch { sys('No se pudo usar el micrófono. Revisá el permiso del navegador.') }
 }
@@ -237,21 +329,15 @@ $('bScr').onclick = async () => {
   if (screen) return pararPantalla()
   try {
     screen = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 30 }, audio: true })
-    room.addStream(screen, null, { tipo: 'pantalla' })
+    voiceRoom.addStream(screen, null, { tipo: 'pantalla' })
     screen.getVideoTracks()[0].onended = pararPantalla
     $('bScr').textContent = 'Dejar de compartir'; $('bScr').classList.add('on')
   } catch { screen = null; sys('No se compartió la pantalla.') }
 }
 function pararPantalla() {
   if (!screen) return
-  room.removeStream(screen); screen.getTracks().forEach(t => t.stop()); screen = null
+  voiceRoom.removeStream(screen); screen.getTracks().forEach(t => t.stop()); screen = null
   $('bScr').textContent = 'Compartir pantalla'; $('bScr').classList.remove('on')
-}
-async function pararMedia() {
-  pararPantalla()
-  if (mic) { mic.getTracks().forEach(t => t.stop()); mic = null }
-  $('bMic').textContent = 'Activar voz'; $('bMic').classList.remove('on'); $('bMute').disabled = true
-  Object.keys(streams).forEach(quitarStream)
 }
 </script>
 </body>
