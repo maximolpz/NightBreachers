@@ -7,7 +7,7 @@
 <style>
 :root{--bg:#1b1d1a;--panel:#232622;--panel2:#2b2f2a;--line:#3a3f38;--txt:#e9ebe4;--dim:#9aa293;--acc:#e0b84c;--ok:#6fbf73}
 *{box-sizing:border-box}
-html,body{height:100%;margin:0}
+html,body{height:100%;margin:0;overflow:hidden}
 body{background:var(--bg);color:var(--txt);font:15px/1.45 "Trebuchet MS","Segoe UI",sans-serif}
 button,input{font:inherit;color:inherit}
 button{background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:7px 12px;cursor:pointer}
@@ -19,7 +19,7 @@ input{background:var(--bg);border:1px solid var(--line);border-radius:6px;paddin
 #login form{width:min(380px,100%);display:grid;gap:10px}
 h1{margin:0 0 4px;font-size:26px}
 .dim{color:var(--dim);font-size:13px}
-#app{display:none;height:100%;grid-template-columns:210px 1fr 190px}
+#app{display:none;height:100%;grid-template-columns:210px minmax(0,1fr) 190px;grid-template-rows:minmax(0,1fr)}
 aside{background:var(--panel);padding:12px;overflow:auto;display:flex;flex-direction:column;gap:6px}
 aside h2{font-size:13px;color:var(--dim);margin:8px 0 2px;font-weight:600}
 .row{display:flex;gap:2px}
@@ -30,12 +30,14 @@ aside h2{font-size:13px;color:var(--dim);margin:8px 0 2px;font-weight:600}
 .x{border:0;background:none;color:var(--dim);padding:7px 8px}
 .x:hover{color:#d9674f}
 #add{width:100%;margin-top:4px}
-main{display:flex;flex-direction:column;min-width:0}
+main{display:flex;flex-direction:column;min-width:0;min-height:0}
+#msgwrap{position:relative;flex:1;min-height:0;display:flex}
+#down{display:none;position:absolute;right:18px;bottom:12px;border-radius:999px;background:var(--acc);color:#1b1d1a;border-color:var(--acc);box-shadow:0 2px 10px #0008}
 #bar{padding:10px 14px;border-bottom:1px solid var(--line);display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 #bar b{margin-right:auto}
 #stage{display:none;gap:8px;padding:8px;background:#000;flex-wrap:wrap;max-height:45%;overflow:auto}
 #stage video{max-width:100%;max-height:260px;background:#111;border-radius:6px}
-#msgs{flex:1;overflow:auto;padding:14px;display:flex;flex-direction:column;gap:10px}
+#msgs{flex:1;min-height:0;overflow:auto;padding:14px;display:flex;flex-direction:column;gap:10px}
 .m{overflow-wrap:anywhere}
 .m b{color:var(--acc)}
 .m.me b{color:var(--ok)}
@@ -45,12 +47,16 @@ main{display:flex;flex-direction:column;min-width:0}
 .adj img,.adj video{display:block;max-width:min(420px,100%);max-height:320px;border-radius:6px}
 .adj img{cursor:zoom-in}
 .m iframe{display:block;margin-top:6px;width:min(480px,100%);aspect-ratio:16/9;border:0;border-radius:6px;background:#000}
-#send{display:flex;gap:8px;padding:12px;border-top:1px solid var(--line)}
+#send{position:relative;display:flex;gap:8px;padding:12px;border-top:1px solid var(--line);background:var(--bg)}
+#bEmo{font-size:18px;padding:4px 10px}
+#emo{display:none;position:absolute;right:12px;bottom:calc(100% + 6px);z-index:10;border-radius:10px;overflow:hidden;background:var(--panel);box-shadow:0 6px 24px #000a;color:var(--dim);padding:0}
+#emo emoji-picker{width:min(340px,92vw);height:360px}
 #prog{height:3px;background:var(--acc);width:0;transition:width .15s}
-.peer{display:flex;align-items:center;gap:6px;font-size:14px}
+.peer{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:14px}
+.peer input[type=range]{width:100%;padding:0;border:0;background:none;accent-color:var(--acc)}
 .dot{width:8px;height:8px;border-radius:50%;background:var(--ok);flex:none}
 body.drag #msgs{outline:2px dashed var(--acc);outline-offset:-8px}
-@media(max-width:720px){#app{grid-template-columns:1fr}aside{flex-direction:row;flex-wrap:wrap;align-items:center;padding:6px 10px}aside h2{display:none}#chs{display:flex;flex-wrap:wrap}#peers{display:none}#add{width:auto;margin:0}}
+@media(max-width:720px){#app{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr) auto}aside{flex-direction:row;flex-wrap:wrap;align-items:center;padding:6px 10px}aside h2{display:none}#chs{display:flex;flex-wrap:wrap}#peers{max-height:110px;flex-direction:column;flex-wrap:nowrap;align-items:stretch}#add{width:auto;margin:0}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -76,22 +82,29 @@ body.drag #msgs{outline:2px dashed var(--acc);outline-offset:-8px}
     <span class="dim" id="status">Buscando amigos…</span>
     <button id="reco">Reconectar</button>
     <button id="salir">Salir</button>
+    <button id="snd">Sonido: sí</button>
   </aside>
   <main>
     <div id="bar">
       <b id="title"></b>
       <button id="bMic">Activar voz</button>
       <button id="bMute" disabled>Silenciar</button>
+      <button id="bRuido" class="on">Supresión de ruido: sí</button>
       <button id="bScr">Compartir pantalla</button>
       <button id="bFile">Enviar archivo</button>
       <input type="file" id="file" hidden>
     </div>
     <div id="prog"></div>
     <div id="stage"></div>
-    <div id="msgs" aria-live="polite"></div>
+    <div id="msgwrap">
+      <div id="msgs" aria-live="polite"></div>
+      <button id="down">↓ Ir al final</button>
+    </div>
     <div id="send">
       <input id="txt" placeholder="Escribí un mensaje, pegá una imagen o un link" autocomplete="off">
+      <button id="bEmo" type="button" aria-label="Emojis" title="Emojis">😊</button>
       <button class="on" id="bSend">Enviar</button>
+      <div id="emo"></div>
     </div>
   </main>
   <aside id="peers"><h2>Conectados</h2><div id="plist"></div></aside>
@@ -106,6 +119,7 @@ const CHUNK = 256 * 1024, MAXSAVE = 25 * 1048576
 let cfg, room, canal = 'general', nick, acts = {}, db = null
 let estado = { general: { ts: 0, del: false } }, canales = ['general'], noLeidos = new Set()
 let peers = {}, salida = { voz: null, pantalla: null }, enviados = new Set(), remotos = {}
+let volumenes = {}, nuevos = 0, ruido = true, ac = null, sonido = true
 
 const rtcConfig = { iceServers: [
   { urls: 'stun:stun.l.google.com:19302' },
@@ -114,6 +128,19 @@ const rtcConfig = { iceServers: [
 ] }
 const limpio = n => n.toLowerCase().trim().replace(/[^a-z0-9_-]+/g, '-').replace(/^[-_]+|-+$/g, '').slice(0, 20)
 const fmt = b => b < 1048576 ? Math.max(1, Math.round(b / 1024)) + ' KB' : (b / 1048576).toFixed(1) + ' MB'
+
+// Sonido suave de mensaje nuevo (sintetizado, sin archivos). Volumen bajo a propósito.
+try { sonido = localStorage.getItem('rancho-sonido') !== '0' } catch {}
+;['pointerdown', 'keydown'].forEach(ev => document.addEventListener(ev, () => { if (ac && ac.state === 'suspended') ac.resume() }))
+function ping() {
+  if (!sonido || !ac) return
+  try {
+    const t = ac.currentTime, o = ac.createOscillator(), g = ac.createGain()
+    o.type = 'sine'; o.frequency.setValueAtTime(740, t); o.frequency.setValueAtTime(988, t + 0.08)
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.05, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.25)
+    o.connect(g).connect(ac.destination); o.start(t); o.stop(t + 0.26)
+  } catch {}
+}
 
 /* ---------- Historial local (IndexedDB, uno por sala, indexado por canal) ---------- */
 function abrirDB() {
@@ -148,6 +175,7 @@ $('f').onsubmit = async e => {
     sessionStorage.setItem('rancho-pwd', $('pwd').value) } catch {}   // la clave solo dura mientras la pestaña esté abierta
   cfg = { appId: 'rancho-p2p-' + $('srv').value.trim().toLowerCase(), password: $('pwd').value, rtcConfig }
   $('login').style.display = 'none'; $('app').style.display = 'grid'
+  try { ac = new (window.AudioContext || window.webkitAudioContext)() } catch {}
   db = await abrirDB()
   try { const g = JSON.parse(localStorage.getItem('canales2-' + cfg.appId))
     if (g && typeof g === 'object') Object.entries(g).forEach(([c, v]) => fusionar(c, v, false)) } catch {}
@@ -225,24 +253,36 @@ function renderTexto(texto) {
   embeds.forEach(e => frag.append(e))
   return frag
 }
+const cercaFinal = () => { const m = $('msgs'); return m.scrollHeight - m.scrollTop - m.clientHeight < 150 }
+function botonBajar() {
+  const m = $('msgs'), lejos = m.scrollHeight - m.scrollTop - m.clientHeight > 300
+  if (!lejos) nuevos = 0
+  $('down').style.display = lejos ? 'block' : 'none'
+  $('down').textContent = nuevos ? '↓ ' + nuevos + ' nuevo(s)' : '↓ Ir al final'
+}
+function bajar(suave) { const m = $('msgs'); m.scrollTo({ top: m.scrollHeight, behavior: suave ? 'smooth' : 'auto' }); nuevos = 0; botonBajar() }
+$('msgs').onscroll = botonBajar
+$('down').onclick = () => bajar(true)
 function add(cls, who, contenido) {
+  const pegado = cercaFinal()
   const d = document.createElement('div'); d.className = 'm ' + cls
   if (who) { const b = document.createElement('b'); b.textContent = who + ': '; d.append(b) }
-  d.append(contenido); $('msgs').append(d); $('msgs').scrollTop = 1e9
+  d.append(contenido); $('msgs').append(d)
+  if (pegado || cls === 'me') bajar(); else { if (cls !== 'sys') nuevos++; botonBajar() }
 }
 const sys = t => add('sys', '', document.createTextNode(t))
 function pintarMsg(rec) {
-  const cls = rec.me ? 'me' : ''
+  const cls = rec.me ? 'me' : '', pegado = cercaFinal() || rec.me
   if (rec.k === 't') return add(cls, rec.who, renderTexto(rec.t))
   const w = document.createElement('div'); w.className = 'adj'
   if (!rec.blob) { w.textContent = rec.nombre + ' (' + fmt(rec.size) + ', demasiado grande para guardarse)'; return add(cls, rec.who, w) }
   const url = URL.createObjectURL(rec.blob), m = String(rec.mime || rec.blob.type || '')
   if (m.startsWith('image/')) {
     const a = document.createElement('a'); a.href = url; a.target = '_blank'
-    const img = document.createElement('img'); img.src = url; img.alt = rec.nombre; img.onload = () => $('msgs').scrollTop = 1e9
+    const img = document.createElement('img'); img.src = url; img.alt = rec.nombre; img.onload = () => { if (pegado) bajar() }
     a.append(img); w.append(a)
   } else if (m.startsWith('video/') || m.startsWith('audio/')) {
-    const v = document.createElement(m.startsWith('video/') ? 'video' : 'audio'); v.src = url; v.controls = true; v.preload = 'metadata'; w.append(v)
+    const v = document.createElement(m.startsWith('video/') ? 'video' : 'audio'); v.src = url; v.controls = true; v.preload = 'metadata'; v.onloadedmetadata = () => { if (pegado) bajar() }; w.append(v)
   } else {
     const a = document.createElement('a'); a.href = url; a.download = rec.nombre; a.textContent = rec.nombre + ' (' + fmt(rec.size) + ')'; w.append(a)
   }
@@ -250,11 +290,20 @@ function pintarMsg(rec) {
 }
 function pintarPeers() {
   const l = $('plist'); l.innerHTML = ''
-  ;[{ nick: nick + ' (vos)', canal }, ...Object.values(peers)].forEach(p => {
+  const fila = (txt, id) => {
     const d = document.createElement('div'); d.className = 'peer'
     d.innerHTML = '<span class="dot"></span>'
-    const s = document.createElement('span'); s.textContent = (p.nick || 'alguien') + (p.canal && p.canal !== canal ? '  #' + p.canal : ''); d.append(s); l.append(d)
-  })
+    const s = document.createElement('span'); s.textContent = txt; d.append(s)
+    if (id && remotos[id] && remotos[id].voz) {   // control de volumen de quien está hablando
+      const r = document.createElement('input'); r.type = 'range'; r.min = 0; r.max = 1; r.step = 0.05
+      r.value = volumenes[id] ?? 1; r.title = 'Volumen de ' + txt; r.setAttribute('aria-label', 'Volumen de ' + txt)
+      r.oninput = () => { volumenes[id] = +r.value; if (remotos[id] && remotos[id].voz) remotos[id].voz.volume = volumenes[id] }
+      d.append(r)
+    }
+    l.append(d)
+  }
+  fila(nick + ' (vos)')
+  Object.entries(peers).forEach(([id, p]) => fila((p.nick || 'alguien') + (p.canal && p.canal !== canal ? '  #' + p.canal : ''), id))
   const n = Object.keys(peers).length
   $('status').textContent = n ? n + ' amigo(s) conectado(s)' : 'Buscando amigos…'
 }
@@ -274,16 +323,14 @@ function iniciarSala() {
     sendPerfil({ nick, canal }, id); sendCan({ t: 'estado', e: estado }, id); pintarPeers()
   })
   room.onPeerLeave(id => {
-    if (peers[id]?.canal === canal) sys((peers[id].nick || 'Alguien') + ' se desconectó')
     delete peers[id]; quitarRemoto(id)
     ;[...enviados].filter(k => k.endsWith(id)).forEach(k => enviados.delete(k))
     pintarPeers()
   })
   onPerfil((p, id) => {
-    const prev = peers[id] || {}, n = String(p.nick).slice(0, 20), c = limpio(String(p.canal || 'general')) || 'general'
-    peers[id] = { nick: n, canal: c }
-    if (c === canal && prev.canal !== canal) sys(n + ' entró al canal')
-    else if (prev.canal === canal && c !== canal) { sys(n + ' salió del canal'); quitarRemoto(id) }
+    const c = limpio(String(p.canal || 'general')) || 'general'
+    peers[id] = { nick: String(p.nick).slice(0, 20), canal: c }
+    if (c !== canal) quitarRemoto(id)
     pintarPeers(); sincronizar()
   })
   onCan(m => {
@@ -311,17 +358,17 @@ function recibir(rec, id) {
   if (estado[c]?.del) return
   if (!estado[c]) { estado[c] = { ts: 0, del: false }; recalcular(); guardarCanales() }
   rec.c = c; rec.who = peers[id]?.nick || 'alguien'
-  guardar(rec)
+  guardar(rec); ping()
   if (c === canal) pintarMsg(rec); else { noLeidos.add(c); pintarCanales() }
 }
 async function entrar(c) {
   detener('voz'); detener('pantalla'); quitarTodosRemotos()
   canal = c; noLeidos.delete(c)
-  $('title').textContent = '# ' + c; $('msgs').innerHTML = ''
+  $('title').textContent = '# ' + c; $('msgs').innerHTML = ''; nuevos = 0; botonBajar()
   pintarCanales(); pintarPeers()
   acts.sendPerfil({ nick, canal })
   const h = await cargar(c)
-  if (canal === c) h.forEach(pintarMsg)
+  if (canal === c) { h.forEach(pintarMsg); bajar() }
 }
 
 /* ---------- Chat y archivos ---------- */
@@ -384,22 +431,32 @@ function mostrarStream(stream, id, meta) {
   if (t === 'pantalla') { el.controls = true; $('stage').append(el); $('stage').style.display = 'flex' }
   else { el.hidden = true; document.body.append(el) }
   if (el.play) el.play().catch(() => sys('Tocá la pantalla para activar el audio.'))
+  if (t === 'voz') el.volume = volumenes[id] ?? 1
   remotos[id] = remotos[id] || {}; remotos[id][t] = el
+  pintarPeers()
 }
 function quitarRemoto(id, t) {
   const r = remotos[id]; if (!r) return
   const ks = t ? [t] : Object.keys(r)
   ks.forEach(k => { if (r[k]) { r[k].remove(); delete r[k] } })
   if (!$('stage').children.length) $('stage').style.display = 'none'
+  pintarPeers()
 }
 function quitarTodosRemotos() { Object.keys(remotos).forEach(id => quitarRemoto(id)) }
 
 $('bMic').onclick = async () => {
   if (salida.voz) return detener('voz')
   try {
-    salida.voz = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } })
+    salida.voz = await navigator.mediaDevices.getUserMedia({ audio: restricciones() })
     sincronizar(); uiMedia()
   } catch { sys('No se pudo usar el micrófono. Revisá el permiso del navegador.') }
+}
+const restricciones = () => ({ echoCancellation: true, noiseSuppression: ruido, autoGainControl: true })
+$('bRuido').onclick = async () => {
+  ruido = !ruido
+  $('bRuido').textContent = 'Supresión de ruido: ' + (ruido ? 'sí' : 'no'); $('bRuido').classList.toggle('on', ruido)
+  const t = salida.voz && salida.voz.getAudioTracks()[0]
+  if (t) { try { await t.applyConstraints(restricciones()) } catch { sys('Tu navegador no deja cambiarlo en vivo: salí de voz y volvé a entrar.') } }
 }
 $('bMute').onclick = () => {
   const t = salida.voz.getAudioTracks()[0]; t.enabled = !t.enabled
@@ -413,6 +470,41 @@ $('bScr').onclick = async () => {
     sincronizar(); uiMedia()
   } catch { salida.pantalla = null }
 }
+
+/* ---------- Sonido on/off ---------- */
+$('snd').textContent = 'Sonido: ' + (sonido ? 'sí' : 'no')
+$('snd').onclick = () => {
+  sonido = !sonido
+  try { localStorage.setItem('rancho-sonido', sonido ? '1' : '0') } catch {}
+  $('snd').textContent = 'Sonido: ' + (sonido ? 'sí' : 'no'); if (sonido) ping()
+}
+
+/* ---------- Selector de emojis completo (se carga recién al abrirlo) ---------- */
+let picker = null
+const EMO = 'https://cdn.jsdelivr.net/npm/emoji-picker-element@1.21.3'
+const EMO_ES = 'https://cdn.jsdelivr.net/npm/emoji-picker-element-data@^1/es/emojibase/data.json'
+$('bEmo').onclick = async () => {
+  const box = $('emo')
+  if (box.style.display === 'block') { box.style.display = 'none'; return }
+  box.style.display = 'block'
+  if (picker) return
+  box.textContent = 'Cargando emojis…'
+  try {
+    await import(EMO + '/+esm')
+    picker = document.createElement('emoji-picker'); picker.className = 'dark'
+    let es = false
+    try { es = (await fetch(EMO_ES, { method: 'HEAD' })).ok } catch {}
+    if (es) { picker.setAttribute('locale', 'es'); picker.setAttribute('data-source', EMO_ES)
+      try { picker.i18n = (await import(EMO + '/i18n/es.js')).default } catch {} }
+    picker.addEventListener('emoji-click', ev => {
+      const i = $('txt'), a = i.selectionStart ?? i.value.length, b = i.selectionEnd ?? a
+      i.setRangeText(ev.detail.unicode, a, b, 'end'); i.focus()
+    })
+    box.textContent = ''; box.append(picker)
+  } catch { box.textContent = 'No se pudo cargar el selector de emojis. Revisá tu conexión.' }
+}
+document.addEventListener('click', e => { if (!$('emo').contains(e.target) && e.target !== $('bEmo')) $('emo').style.display = 'none' })
+document.addEventListener('keydown', e => { if (e.key === 'Escape') $('emo').style.display = 'none' })
 
 /* ---------- Si recargaste con "Reconectar", entra solo ---------- */
 try { const p = sessionStorage.getItem('rancho-pwd')
