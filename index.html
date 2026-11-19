@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rancho P2P</title>
+<style>
+:root{--bg:#1b1d1a;--panel:#232622;--panel2:#2b2f2a;--line:#3a3f38;--txt:#e9ebe4;--dim:#9aa293;--acc:#e0b84c;--ok:#6fbf73;--bad:#d9674f}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--txt);font:15px/1.45 "Trebuchet MS","Segoe UI",sans-serif}
+button,input{font:inherit;color:inherit}
+button{background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:7px 12px;cursor:pointer}
+button:hover{border-color:var(--acc)}
+button.on{background:var(--acc);color:#1b1d1a;border-color:var(--acc)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+input{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:9px 11px;width:100%}
+#login{height:100%;display:grid;place-items:center;padding:16px}
+#login form,#login .box{width:min(380px,100%);display:grid;gap:10px}
+h1{margin:0 0 4px;font-size:26px;letter-spacing:.5px}
+.dim{color:var(--dim);font-size:13px}
+#app{display:none;height:100%;grid-template-columns:200px 1fr 190px}
+aside{background:var(--panel);padding:12px;overflow:auto;display:flex;flex-direction:column;gap:6px}
+aside h2{font-size:13px;color:var(--dim);margin:8px 0 2px;font-weight:600}
+.ch{text-align:left;width:100%;border:0;background:none}
+.ch.on{background:var(--panel2);color:var(--acc)}
+main{display:flex;flex-direction:column;min-width:0}
+#bar{padding:10px 14px;border-bottom:1px solid var(--line);display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+#bar b{margin-right:auto}
+#stage{display:none;gap:8px;padding:8px;background:#000;flex-wrap:wrap;max-height:45%;overflow:auto}
+#stage video{max-width:100%;max-height:260px;background:#111;border-radius:6px}
+#msgs{flex:1;overflow:auto;padding:14px;display:flex;flex-direction:column;gap:8px}
+.m b{color:var(--acc)}
+.m.me b{color:var(--ok)}
+.m.sys{color:var(--dim);font-size:13px}
+.m a{color:var(--acc)}
+#send{display:flex;gap:8px;padding:12px;border-top:1px solid var(--line)}
+#prog{height:3px;background:var(--acc);width:0;transition:width .2s}
+.peer{display:flex;align-items:center;gap:6px;font-size:14px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--ok)}
+.dot.talk{box-shadow:0 0 0 3px #6fbf7355}
+@media(max-width:720px){#app{grid-template-columns:1fr}aside{flex-direction:row;flex-wrap:wrap;align-items:center;padding:6px 10px}aside h2{display:none}.ch{width:auto}#peers{display:none}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<div id="login">
+  <form id="f">
+    <h1>Rancho P2P</h1>
+    <p class="dim">Entrá con tus amigos usando el mismo nombre de sala y clave. No hay servidor ni mensajes guardados.</p>
+    <input id="nick" placeholder="Tu apodo" required maxlength="20" autocomplete="off">
+    <input id="srv" placeholder="Nombre de la sala (ej: los-pibes)" required autocomplete="off">
+    <input id="pwd" type="password" placeholder="Clave" required>
+    <button class="on" type="submit">Entrar</button>
+    <p class="dim" id="err"></p>
+  </form>
+</div>
+
+<div id="app">
+  <aside>
+    <h2>Canales</h2>
+    <div id="chs"></div>
+    <h2>Conexión</h2>
+    <span class="dim" id="status">Buscando amigos…</span>
+  </aside>
+  <main>
+    <div id="bar">
+      <b id="title"></b>
+      <button id="bMic">Activar voz</button>
+      <button id="bMute" disabled>Silenciar</button>
+      <button id="bScr">Compartir pantalla</button>
+      <button id="bFile">Enviar archivo</button>
+      <input type="file" id="file" hidden>
+    </div>
+    <div id="prog"></div>
+    <div id="stage"></div>
+    <div id="msgs" aria-live="polite"></div>
+    <div id="send">
+      <input id="txt" placeholder="Escribí un mensaje" autocomplete="off">
+      <button class="on" id="bSend">Enviar</button>
+    </div>
+  </main>
+  <aside id="peers"><h2>Conectados</h2><div id="plist"></div></aside>
+</div>
+
+<audio id="sink" hidden></audio>
+
+<script type="module">
+// Estrategia por torrent trackers. Si falla, probá con 'trystero@0.21.5/nostr'.
+import { joinRoom, selfId } from 'https://cdn.jsdelivr.net/npm/trystero@0.21.5/torrent/+esm'
+
+const $ = id => document.getElementById(id)
+const CANALES = ['general', 'juegos', 'musica']
+const CHUNK = 256 * 1024
+let cfg, room, canal, nick, acts = {}
+let peers = {}            // id -> {nick}
+let mic = null, screen = null
+let streams = {}          // id -> {voz, pantalla}
+
+const rtcConfig = { iceServers: [
+  { urls: 'stun:stun.l.google.com:19302' },
+  { urls: 'stun:stun1.l.google.com:19302' }
+  // Para TURN, agregá acá: { urls:'turn:...', username:'...', credential:'...' }
+] }
+
+$('f').onsubmit = e => {
+  e.preventDefault()
+  nick = $('nick').value.trim()
+  cfg = { appId: 'rancho-p2p-' + $('srv').value.trim().toLowerCase(), password: $('pwd').value, rtcConfig }
+  $('login').style.display = 'none'
+  $('app').style.display = 'grid'
+  $('chs').innerHTML = ''
+  CANALES.forEach(c => {
+    const b = document.createElement('button')
+    b.className = 'ch'; b.textContent = '# ' + c; b.dataset.c = c
+    b.onclick = () => entrar(c)
+    $('chs').append(b)
+  })
+  entrar('general')
+}
+
+function sys(t) { add('sys', '', t) }
+function add(cls, who, t, link) {
+  const d = document.createElement('div'); d.className = 'm ' + cls
+  if (who) { const b = document.createElement('b'); b.textContent = who + ': '; d.append(b) }
+  if (link) d.append(link); else d.append(document.createTextNode(t))
+  $('msgs').append(d); $('msgs').scrollTop = 1e9
+}
+function pintarPeers() {
+  const l = $('plist'); l.innerHTML = ''
+  const yo = [[selfId, { nick: nick + ' (vos)' }], ...Object.entries(peers)]
+  yo.forEach(([id, p]) => {
+    const d = document.createElement('div'); d.className = 'peer'
+    d.innerHTML = '<span class="dot"></span>'
+    d.append(document.createTextNode(p.nick || 'alguien'))
+    l.append(d)
+  })
+  $('status').textContent = Object.keys(peers).length ? Object.keys(peers).length + ' amigo(s) conectado(s)' : 'Buscando amigos…'
+}
+
+async function entrar(c) {
+  if (room) { await pararMedia(); room.leave() }
+  canal = c; peers = {}; streams = {}; $('stage').innerHTML = ''; $('stage').style.display = 'none'
+  $('msgs').innerHTML = ''
+  document.querySelectorAll('.ch').forEach(b => b.classList.toggle('on', b.dataset.c === c))
+  $('title').textContent = '# ' + c
+  room = joinRoom(cfg, c)
+
+  const [sendMsg, onMsg] = room.makeAction('chat')
+  const [sendPerfil, onPerfil] = room.makeAction('perfil')
+  const [sendFile, onFile] = room.makeAction('archivo')
+  acts = { sendMsg, sendPerfil, sendFile }
+
+  room.onPeerJoin(id => { sendPerfil({ nick }, id); sys('Alguien entró, esperando su apodo…'); peers[id] = peers[id] || {}; pintarPeers()
+    if (mic) room.addStream(mic, id, { tipo: 'voz' })
+    if (screen) room.addStream(screen, id, { tipo: 'pantalla' }) })
+  room.onPeerLeave(id => { sys((peers[id]?.nick || 'Alguien') + ' salió'); delete peers[id]; quitarStream(id); pintarPeers() })
+  onPerfil((p, id) => { peers[id] = { nick: String(p.nick).slice(0, 20) }; sys(peers[id].nick + ' entró'); pintarPeers() })
+  onMsg((t, id) => add('', peers[id]?.nick || 'alguien', String(t)))
+
+  // Archivos: se reciben en pedazos y se arma el Blob al final
+  const rx = {}
+  onFile((buf, id, meta) => {
+    const k = id + meta.fid
+    const r = rx[k] = rx[k] || { parts: [], n: 0 }
+    r.parts.push(buf); r.n++
+    if (r.n === meta.total) {
+      delete rx[k]
+      const url = URL.createObjectURL(new Blob(r.parts))
+      const a = document.createElement('a'); a.href = url; a.download = meta.nombre
+      a.textContent = 'Descargar ' + meta.nombre + ' (' + (meta.size / 1048576).toFixed(1) + ' MB)'
+      add('', peers[id]?.nick || 'alguien', '', a)
+    }
+  })
+
+  room.onPeerStream((stream, id, meta) => mostrarStream(stream, id, meta || {}))
+  pintarPeers(); sys('Entraste a #' + c + '. Los mensajes no se guardan.')
+}
+
+// Chat
+function mandar() {
+  const t = $('txt').value.trim(); if (!t) return
+  acts.sendMsg(t); add('me', nick, t); $('txt').value = ''
+}
+$('bSend').onclick = mandar
+$('txt').onkeydown = e => { if (e.key === 'Enter') mandar() }
+
+// Archivos
+$('bFile').onclick = () => $('file').click()
+$('file').onchange = async e => {
+  const f = e.target.files[0]; if (!f) return
+  if (!Object.keys(peers).length) { sys('No hay nadie conectado para recibirlo.'); return }
+  const total = Math.ceil(f.size / CHUNK), fid = Math.random().toString(36).slice(2)
+  sys('Enviando ' + f.name + '…')
+  for (let i = 0; i < total; i++) {
+    const buf = await f.slice(i * CHUNK, (i + 1) * CHUNK).arrayBuffer()
+    await acts.sendFile(buf, null, { fid, total, nombre: f.name, size: f.size })
+    $('prog').style.width = ((i + 1) / total * 100) + '%'
+  }
+  setTimeout(() => $('prog').style.width = 0, 800)
+  sys('Enviado: ' + f.name + '. Mantené la pestaña abierta hasta que terminen de recibirlo.')
+  e.target.value = ''
+}
+
+// Voz y pantalla
+function mostrarStream(stream, id, meta) {
+  streams[id] = streams[id] || {}
+  const el = document.createElement(meta.tipo === 'pantalla' ? 'video' : 'audio')
+  el.srcObject = stream; el.autoplay = true; el.playsInline = true
+  if (meta.tipo === 'pantalla') { el.controls = true; $('stage').append(el); $('stage').style.display = 'flex' }
+  else { el.style.display = 'none'; document.body.append(el) }
+  el.play?.().catch(() => sys('Tocá la pantalla para activar el audio.'))
+  streams[id][meta.tipo] = el
+  if (meta.tipo === 'pantalla') sys((peers[id]?.nick || 'Alguien') + ' está compartiendo pantalla')
+}
+function quitarStream(id) {
+  const s = streams[id]; if (!s) return
+  Object.values(s).forEach(el => el.remove()); delete streams[id]
+  if (!$('stage').children.length) $('stage').style.display = 'none'
+}
+
+$('bMic').onclick = async () => {
+  if (mic) { room.removeStream(mic); mic.getTracks().forEach(t => t.stop()); mic = null
+    $('bMic').textContent = 'Activar voz'; $('bMic').classList.remove('on'); $('bMute').disabled = true; return }
+  try {
+    mic = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } })
+    room.addStream(mic, null, { tipo: 'voz' })
+    $('bMic').textContent = 'Salir de voz'; $('bMic').classList.add('on'); $('bMute').disabled = false
+  } catch { sys('No se pudo usar el micrófono. Revisá el permiso del navegador.') }
+}
+$('bMute').onclick = () => {
+  const t = mic.getAudioTracks()[0]; t.enabled = !t.enabled
+  $('bMute').textContent = t.enabled ? 'Silenciar' : 'Activar mic'
+}
+$('bScr').onclick = async () => {
+  if (screen) return pararPantalla()
+  try {
+    screen = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 30 }, audio: true })
+    room.addStream(screen, null, { tipo: 'pantalla' })
+    screen.getVideoTracks()[0].onended = pararPantalla
+    $('bScr').textContent = 'Dejar de compartir'; $('bScr').classList.add('on')
+  } catch { screen = null; sys('No se compartió la pantalla.') }
+}
+function pararPantalla() {
+  if (!screen) return
+  room.removeStream(screen); screen.getTracks().forEach(t => t.stop()); screen = null
+  $('bScr').textContent = 'Compartir pantalla'; $('bScr').classList.remove('on')
+}
+async function pararMedia() {
+  pararPantalla()
+  if (mic) { mic.getTracks().forEach(t => t.stop()); mic = null }
+  $('bMic').textContent = 'Activar voz'; $('bMic').classList.remove('on'); $('bMute').disabled = true
+  Object.keys(streams).forEach(quitarStream)
+}
+</script>
+</body>
+</html>
