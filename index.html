@@ -17,7 +17,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--acc);outline-of
 input{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:9px 11px;width:100%}
 #login{height:100%;display:grid;place-items:center;padding:16px}
 #login form{width:min(380px,100%);display:grid;gap:10px}
-h1{margin:0 0 4px;font-size:26px;letter-spacing:.5px}
+h1{margin:0 0 4px;font-size:26px}
 .dim{color:var(--dim);font-size:13px}
 #app{display:none;height:100%;grid-template-columns:210px 1fr 190px}
 aside{background:var(--panel);padding:12px;overflow:auto;display:flex;flex-direction:column;gap:6px}
@@ -25,6 +25,8 @@ aside h2{font-size:13px;color:var(--dim);margin:8px 0 2px;font-weight:600}
 .row{display:flex;gap:2px}
 .ch{text-align:left;flex:1;border:0;background:none;padding:7px 8px}
 .ch.on{background:var(--panel2);color:var(--acc)}
+.ch.new{font-weight:700}
+.ch.new::after{content:" •";color:var(--acc)}
 .x{border:0;background:none;color:var(--dim);padding:7px 8px}
 .x:hover{color:#d9674f}
 #add{width:100%;margin-top:4px}
@@ -39,12 +41,14 @@ main{display:flex;flex-direction:column;min-width:0}
 .m.me b{color:var(--ok)}
 .m.sys{color:var(--dim);font-size:13px}
 .m a{color:var(--acc)}
-.m img{display:block;margin-top:4px;max-width:min(420px,100%);max-height:320px;border-radius:6px;cursor:zoom-in}
+.adj{display:block;width:fit-content;max-width:100%;margin-top:4px;padding:6px;border:2px solid #5d6558;border-radius:10px;background:var(--panel)}
+.adj img,.adj video{display:block;max-width:min(420px,100%);max-height:320px;border-radius:6px}
+.adj img{cursor:zoom-in}
 .m iframe{display:block;margin-top:6px;width:min(480px,100%);aspect-ratio:16/9;border:0;border-radius:6px;background:#000}
 #send{display:flex;gap:8px;padding:12px;border-top:1px solid var(--line)}
 #prog{height:3px;background:var(--acc);width:0;transition:width .15s}
 .peer{display:flex;align-items:center;gap:6px;font-size:14px}
-.dot{width:8px;height:8px;border-radius:50%;background:var(--ok)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--ok);flex:none}
 body.drag #msgs{outline:2px dashed var(--acc);outline-offset:-8px}
 @media(max-width:720px){#app{grid-template-columns:1fr}aside{flex-direction:row;flex-wrap:wrap;align-items:center;padding:6px 10px}aside h2{display:none}#chs{display:flex;flex-wrap:wrap}#peers{display:none}#add{width:auto;margin:0}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
@@ -55,7 +59,7 @@ body.drag #msgs{outline:2px dashed var(--acc);outline-offset:-8px}
 <div id="login">
   <form id="f">
     <h1>Rancho P2P</h1>
-    <p class="dim">Entrá con tus amigos usando el mismo nombre de sala y clave. No hay servidor ni mensajes guardados.</p>
+    <p class="dim">Entrá con tus amigos usando el mismo nombre de sala y clave. No hay servidor: el historial queda guardado solo en tu navegador.</p>
     <input id="nick" placeholder="Tu apodo" required maxlength="20" autocomplete="off">
     <input id="srv" placeholder="Nombre de la sala (ej: los-pibes)" required autocomplete="off">
     <input id="pwd" type="password" placeholder="Clave" required>
@@ -70,6 +74,8 @@ body.drag #msgs{outline:2px dashed var(--acc);outline-offset:-8px}
     <button id="add">+ Crear canal</button>
     <h2>Conexión</h2>
     <span class="dim" id="status">Buscando amigos…</span>
+    <button id="reco">Reconectar</button>
+    <button id="salir">Salir</button>
   </aside>
   <main>
     <div id="bar">
@@ -93,47 +99,70 @@ body.drag #msgs{outline:2px dashed var(--acc);outline-offset:-8px}
 
 <script type="module">
 // Trackers de torrent para encontrarse. Si no conectan, probá con 'trystero@0.21.5/nostr'.
-import { joinRoom, selfId } from 'https://cdn.jsdelivr.net/npm/trystero@0.21.5/torrent/+esm'
+import { joinRoom } from 'https://cdn.jsdelivr.net/npm/trystero@0.21.5/torrent/+esm'
 
 const $ = id => document.getElementById(id)
-const CHUNK = 256 * 1024
-let cfg, room, lobby, canal, nick, acts = {}, sendCanales
-let canales = ['general']
-let peers = {}, mic = null, screen = null, streams = {}
+const CHUNK = 256 * 1024, MAXSAVE = 25 * 1048576
+let cfg, room, canal = 'general', nick, acts = {}, db = null
+let estado = { general: { ts: 0, del: false } }, canales = ['general'], noLeidos = new Set()
+let peers = {}, salida = { voz: null, pantalla: null }, enviados = new Set(), remotos = {}
 
 const rtcConfig = { iceServers: [
   { urls: 'stun:stun.l.google.com:19302' },
   { urls: 'stun:stun1.l.google.com:19302' }
   // Para TURN: { urls:'turn:...', username:'...', credential:'...' }
 ] }
+const limpio = n => n.toLowerCase().trim().replace(/[^a-z0-9_-]+/g, '-').replace(/^[-_]+|-+$/g, '').slice(0, 20)
+const fmt = b => b < 1048576 ? Math.max(1, Math.round(b / 1024)) + ' KB' : (b / 1048576).toFixed(1) + ' MB'
 
-/* ---------- Login ---------- */
-try {
-  $('nick').value = localStorage.getItem('rancho-nick') || ''
-  $('srv').value = localStorage.getItem('rancho-sala') || ''
-} catch {}
-// Si ya hay apodo y sala guardados, solo falta la clave
-;($('nick').value && $('srv').value ? $('pwd') : $('nick').value ? $('srv') : $('nick')).focus()
-
-$('f').onsubmit = e => {
-  e.preventDefault()
-  nick = $('nick').value.trim()
-  try { localStorage.setItem('rancho-nick', nick); localStorage.setItem('rancho-sala', $('srv').value.trim()) } catch {}
-  cfg = { appId: 'rancho-p2p-' + $('srv').value.trim().toLowerCase(), password: $('pwd').value, rtcConfig }
-  $('login').style.display = 'none'; $('app').style.display = 'grid'
-  try { const g = JSON.parse(localStorage.getItem('canales2-' + cfg.appId)); if (g && typeof g === 'object') Object.entries(g).forEach(([c, v]) => fusionar(c, v, false)) } catch {}
-  iniciarLobby(); pintarCanales(); entrar('general')
+/* ---------- Historial local (IndexedDB, uno por sala, indexado por canal) ---------- */
+function abrirDB() {
+  return new Promise(r => { try {
+    const q = indexedDB.open('rancho-' + cfg.appId, 1)
+    q.onupgradeneeded = () => q.result.createObjectStore('m', { autoIncrement: true }).createIndex('c', 'c')
+    q.onsuccess = () => r(q.result); q.onerror = () => r(null)
+  } catch { r(null) } })
+}
+function guardar(rec) {
+  if (!db) return
+  try { db.transaction('m', 'readwrite').objectStore('m').add(rec.blob && rec.size > MAXSAVE ? { ...rec, blob: null } : rec) } catch {}
+}
+function cargar(c) {
+  return new Promise(r => { if (!db) return r([])
+    try { const q = db.transaction('m').objectStore('m').index('c').getAll(c); q.onsuccess = () => r(q.result); q.onerror = () => r([]) } catch { r([]) } })
+}
+function borrarHist(c) {
+  if (!db) return
+  try { const q = db.transaction('m', 'readwrite').objectStore('m').index('c').openCursor(IDBKeyRange.only(c))
+    q.onsuccess = () => { const k = q.result; if (k) { k.delete(); k.continue() } } } catch {}
 }
 
-/* ---------- Canales: se sincronizan por una sala "lobby" siempre abierta ---------- */
-const limpio = n => n.toLowerCase().trim().replace(/[^a-z0-9_-]+/g, '-').replace(/^[-_]+|-+$/g, '').slice(0, 20)
-// Cada canal tiene {ts, del}. Gana siempre el cambio más nuevo, así un canal borrado no reaparece.
-let estado = { general: { ts: 0, del: false } }
+/* ---------- Login ---------- */
+try { $('nick').value = localStorage.getItem('rancho-nick') || ''; $('srv').value = localStorage.getItem('rancho-sala') || '' } catch {}
+;($('nick').value && $('srv').value ? $('pwd') : $('nick').value ? $('srv') : $('nick')).focus()
+
+$('f').onsubmit = async e => {
+  e.preventDefault()
+  nick = $('nick').value.trim()
+  try { localStorage.setItem('rancho-nick', nick); localStorage.setItem('rancho-sala', $('srv').value.trim())
+    sessionStorage.setItem('rancho-pwd', $('pwd').value) } catch {}   // la clave solo dura mientras la pestaña esté abierta
+  cfg = { appId: 'rancho-p2p-' + $('srv').value.trim().toLowerCase(), password: $('pwd').value, rtcConfig }
+  $('login').style.display = 'none'; $('app').style.display = 'grid'
+  db = await abrirDB()
+  try { const g = JSON.parse(localStorage.getItem('canales2-' + cfg.appId))
+    if (g && typeof g === 'object') Object.entries(g).forEach(([c, v]) => fusionar(c, v, false)) } catch {}
+  iniciarSala(); pintarCanales(); entrar('general')
+}
+$('reco').onclick = () => location.reload()
+$('salir').onclick = () => { try { sessionStorage.removeItem('rancho-pwd') } catch {} location.reload() }
+
+/* ---------- Canales: etiquetas dentro de una única sala; gana el cambio más nuevo ---------- */
 function recalcular() { canales = Object.keys(estado).filter(c => !estado[c].del) }
 function guardarCanales() { try { localStorage.setItem('canales2-' + cfg.appId, JSON.stringify(estado)) } catch {} }
 function cambiar(c, del) {
   estado[c] = { ts: Date.now(), del }; recalcular(); guardarCanales()
-  sendCanales({ t: 'set', c, del, ts: estado[c].ts })
+  acts.sendCan({ t: 'set', c, del, ts: estado[c].ts })
+  if (del) { borrarHist(c); noLeidos.delete(c) }
 }
 function fusionar(c, v, avisar) {
   c = limpio(String(c))
@@ -142,30 +171,19 @@ function fusionar(c, v, avisar) {
   const antes = estado[c] && !estado[c].del
   estado[c] = { ts: v.ts, del: !!v.del }; recalcular()
   if (avisar && antes !== !v.del) sys((v.del ? 'Se quitó' : 'Se creó') + ' el canal #' + c)
-  if (v.del && canal === c) entrar('general')
-}
-function iniciarLobby() {
-  lobby = joinRoom(cfg, '_lobby')
-  const [send, on] = lobby.makeAction('canales')
-  sendCanales = send
-  lobby.onPeerJoin(id => send({ t: 'estado', e: estado }, id))
-  on(m => {
-    if (m.t === 'estado' && m.e) Object.entries(m.e).forEach(([c, v]) => fusionar(c, v, false))
-    if (m.t === 'set') fusionar(m.c, { ts: m.ts, del: m.del }, true)
-    guardarCanales(); pintarCanales()
-  })
+  if (v.del) { borrarHist(c); noLeidos.delete(c); if (canal === c) entrar('general') }
 }
 function pintarCanales() {
   $('chs').innerHTML = ''
   canales.forEach(c => {
     const r = document.createElement('div'); r.className = 'row'
-    const b = document.createElement('button'); b.className = 'ch' + (c === canal ? ' on' : ''); b.textContent = '# ' + c
-    b.onclick = () => entrar(c); r.append(b)
+    const b = document.createElement('button'); b.className = 'ch' + (c === canal ? ' on' : '') + (noLeidos.has(c) ? ' new' : '')
+    b.textContent = '# ' + c; b.onclick = () => entrar(c); r.append(b)
     if (c !== 'general') {
-      const x = document.createElement('button'); x.className = 'x'; x.textContent = '✕'; x.title = 'Quitar canal'; x.setAttribute('aria-label', 'Quitar canal ' + c)
-      x.onclick = () => { if (confirm('¿Quitar #' + c + ' para todos?')) {
-        cambiar(c, true)
-        if (canal === c) entrar('general'); else pintarCanales() } }
+      const x = document.createElement('button'); x.className = 'x'; x.textContent = '✕'; x.title = 'Quitar canal'
+      x.setAttribute('aria-label', 'Quitar canal ' + c)
+      x.onclick = () => { if (confirm('¿Quitar #' + c + ' para todos? Se borra también su historial.')) {
+        cambiar(c, true); if (canal === c) entrar('general'); else pintarCanales() } }
       r.append(x)
     }
     $('chs').append(r)
@@ -178,7 +196,7 @@ $('add').onclick = () => {
   entrar(c)
 }
 
-/* ---------- Render de mensajes ---------- */
+/* ---------- Render ---------- */
 const URL_RE = /https?:\/\/[^\s<]+/g
 function ytId(u) {
   try {
@@ -213,51 +231,67 @@ function add(cls, who, contenido) {
   d.append(contenido); $('msgs').append(d); $('msgs').scrollTop = 1e9
 }
 const sys = t => add('sys', '', document.createTextNode(t))
-function mostrarArchivo(cls, who, blob, nombre, size) {
-  const url = URL.createObjectURL(blob)
-  if (blob.type.startsWith('image/')) {
+function pintarMsg(rec) {
+  const cls = rec.me ? 'me' : ''
+  if (rec.k === 't') return add(cls, rec.who, renderTexto(rec.t))
+  const w = document.createElement('div'); w.className = 'adj'
+  if (!rec.blob) { w.textContent = rec.nombre + ' (' + fmt(rec.size) + ', demasiado grande para guardarse)'; return add(cls, rec.who, w) }
+  const url = URL.createObjectURL(rec.blob), m = String(rec.mime || rec.blob.type || '')
+  if (m.startsWith('image/')) {
     const a = document.createElement('a'); a.href = url; a.target = '_blank'
-    const img = document.createElement('img'); img.src = url; img.alt = nombre; img.onload = () => $('msgs').scrollTop = 1e9
-    a.append(img); add(cls, who, a)
+    const img = document.createElement('img'); img.src = url; img.alt = rec.nombre; img.onload = () => $('msgs').scrollTop = 1e9
+    a.append(img); w.append(a)
+  } else if (m.startsWith('video/') || m.startsWith('audio/')) {
+    const v = document.createElement(m.startsWith('video/') ? 'video' : 'audio'); v.src = url; v.controls = true; v.preload = 'metadata'; w.append(v)
   } else {
-    const a = document.createElement('a'); a.href = url; a.download = nombre
-    a.textContent = (cls === 'me' ? 'Enviaste ' : 'Descargar ') + nombre + ' (' + (size / 1048576).toFixed(1) + ' MB)'
-    add(cls, who, a)
+    const a = document.createElement('a'); a.href = url; a.download = rec.nombre; a.textContent = rec.nombre + ' (' + fmt(rec.size) + ')'; w.append(a)
   }
+  add(cls, rec.who, w)
 }
-
-/* ---------- Sala actual ---------- */
 function pintarPeers() {
   const l = $('plist'); l.innerHTML = ''
-  ;[{ nick: nick + ' (vos)' }, ...Object.values(peers)].forEach(p => {
+  ;[{ nick: nick + ' (vos)', canal }, ...Object.values(peers)].forEach(p => {
     const d = document.createElement('div'); d.className = 'peer'
-    d.innerHTML = '<span class="dot"></span>'; d.append(document.createTextNode(p.nick || 'alguien')); l.append(d)
+    d.innerHTML = '<span class="dot"></span>'
+    const s = document.createElement('span'); s.textContent = (p.nick || 'alguien') + (p.canal && p.canal !== canal ? '  #' + p.canal : ''); d.append(s); l.append(d)
   })
   const n = Object.keys(peers).length
   $('status').textContent = n ? n + ' amigo(s) conectado(s)' : 'Buscando amigos…'
 }
 
-async function entrar(c) {
-  if (room) { pararMedia(); room.leave() }
-  canal = c; peers = {}; streams = {}
-  $('stage').innerHTML = ''; $('stage').style.display = 'none'; $('msgs').innerHTML = ''
-  $('title').textContent = '# ' + c; pintarCanales()
-  room = joinRoom(cfg, c)
-
+/* ---------- Sala única ---------- */
+function iniciarSala() {
+  room = joinRoom(cfg, 'main')
   const [sendMsg, onMsg] = room.makeAction('chat')
   const [sendPerfil, onPerfil] = room.makeAction('perfil')
   const [sendFile, onFile] = room.makeAction('archivo')
-  acts = { sendMsg, sendFile }
+  const [sendCan, onCan] = room.makeAction('canales')
+  const [sendFin, onFin] = room.makeAction('fin')
+  acts = { sendMsg, sendPerfil, sendFile, sendCan, sendFin }
 
   room.onPeerJoin(id => {
-    sendPerfil({ nick }, id); peers[id] = peers[id] || { nick: 'alguien' }; pintarPeers()
-    if (mic) room.addStream(mic, id, { tipo: 'voz' })
-    if (screen) room.addStream(screen, id, { tipo: 'pantalla' })
+    peers[id] = { nick: 'alguien', canal: null }
+    sendPerfil({ nick, canal }, id); sendCan({ t: 'estado', e: estado }, id); pintarPeers()
   })
-  room.onPeerLeave(id => { sys((peers[id]?.nick || 'Alguien') + ' salió'); delete peers[id]; quitarStream(id); pintarPeers() })
-  onPerfil((p, id) => { peers[id] = { nick: String(p.nick).slice(0, 20) }; sys(peers[id].nick + ' entró'); pintarPeers() })
-  onMsg((t, id) => add('', peers[id]?.nick || 'alguien', renderTexto(String(t))))
-
+  room.onPeerLeave(id => {
+    if (peers[id]?.canal === canal) sys((peers[id].nick || 'Alguien') + ' se desconectó')
+    delete peers[id]; quitarRemoto(id)
+    ;[...enviados].filter(k => k.endsWith(id)).forEach(k => enviados.delete(k))
+    pintarPeers()
+  })
+  onPerfil((p, id) => {
+    const prev = peers[id] || {}, n = String(p.nick).slice(0, 20), c = limpio(String(p.canal || 'general')) || 'general'
+    peers[id] = { nick: n, canal: c }
+    if (c === canal && prev.canal !== canal) sys(n + ' entró al canal')
+    else if (prev.canal === canal && c !== canal) { sys(n + ' salió del canal'); quitarRemoto(id) }
+    pintarPeers(); sincronizar()
+  })
+  onCan(m => {
+    if (m.t === 'estado' && m.e) Object.entries(m.e).forEach(([c, v]) => fusionar(c, v, false))
+    if (m.t === 'set') fusionar(m.c, { ts: m.ts, del: m.del }, true)
+    guardarCanales(); pintarCanales()
+  })
+  onMsg((m, id) => recibir({ k: 't', c: m.c, t: String(m.t).slice(0, 4000) }, id))
   const rx = {}
   onFile((buf, id, meta) => {
     const k = id + meta.fid, r = rx[k] = rx[k] || { parts: [], n: 0 }
@@ -265,27 +299,46 @@ async function entrar(c) {
     $('prog').style.width = (r.n / meta.total * 100) + '%'
     if (r.n === meta.total) {
       delete rx[k]; setTimeout(() => $('prog').style.width = 0, 500)
-      mostrarArchivo('', peers[id]?.nick || 'alguien', new Blob(r.parts, { type: meta.mime }), meta.nombre, meta.size)
+      const mime = String(meta.mime || '')
+      recibir({ k: 'f', c: meta.c, nombre: String(meta.nombre).slice(0, 120), size: meta.size, mime, blob: new Blob(r.parts, { type: mime }) }, id)
     }
   })
+  onFin(({ tipo }, id) => quitarRemoto(id, tipo))
   room.onPeerStream((stream, id, meta) => mostrarStream(stream, id, meta || {}))
-  pintarPeers()
+}
+function recibir(rec, id) {
+  const c = limpio(String(rec.c || '')) || 'general'
+  if (estado[c]?.del) return
+  if (!estado[c]) { estado[c] = { ts: 0, del: false }; recalcular(); guardarCanales() }
+  rec.c = c; rec.who = peers[id]?.nick || 'alguien'
+  guardar(rec)
+  if (c === canal) pintarMsg(rec); else { noLeidos.add(c); pintarCanales() }
+}
+async function entrar(c) {
+  detener('voz'); detener('pantalla'); quitarTodosRemotos()
+  canal = c; noLeidos.delete(c)
+  $('title').textContent = '# ' + c; $('msgs').innerHTML = ''
+  pintarCanales(); pintarPeers()
+  acts.sendPerfil({ nick, canal })
+  const h = await cargar(c)
+  if (canal === c) h.forEach(pintarMsg)
 }
 
-/* ---------- Chat ---------- */
+/* ---------- Chat y archivos ---------- */
 function mandar() {
   const t = $('txt').value.trim(); if (!t) return
-  acts.sendMsg(t); add('me', nick, renderTexto(t)); $('txt').value = ''
+  const rec = { k: 't', c: canal, t, who: nick, me: true }
+  acts.sendMsg({ c: canal, t }); guardar(rec); pintarMsg(rec); $('txt').value = ''
 }
 $('bSend').onclick = mandar
 $('txt').onkeydown = e => { if (e.key === 'Enter') mandar() }
 
-/* ---------- Archivos e imágenes (botón, pegar, arrastrar) ---------- */
 async function enviarArchivo(f) {
   if (!f) return
-  mostrarArchivo('me', nick, f, f.name || 'imagen.png', f.size)
-  const total = Math.max(1, Math.ceil(f.size / CHUNK)), fid = Math.random().toString(36).slice(2)
-  const meta = { fid, total, nombre: f.name || 'imagen.png', size: f.size, mime: f.type }
+  const c = canal, nombre = f.name || 'imagen.png'
+  const rec = { k: 'f', c, who: nick, me: true, nombre, size: f.size, mime: f.type, blob: f }
+  guardar(rec); pintarMsg(rec)
+  const total = Math.max(1, Math.ceil(f.size / CHUNK)), meta = { fid: Math.random().toString(36).slice(2), total, nombre, size: f.size, mime: f.type, c }
   for (let i = 0; i < total; i++) {
     await acts.sendFile(await f.slice(i * CHUNK, (i + 1) * CHUNK).arrayBuffer(), null, meta)
     $('prog').style.width = ((i + 1) / total * 100) + '%'
@@ -302,54 +355,68 @@ document.addEventListener('dragover', e => { e.preventDefault(); document.body.c
 document.addEventListener('dragleave', e => { if (!e.relatedTarget) document.body.classList.remove('drag') })
 document.addEventListener('drop', e => { e.preventDefault(); document.body.classList.remove('drag'); [...e.dataTransfer.files].forEach(enviarArchivo) })
 
-/* ---------- Voz y pantalla ---------- */
-function mostrarStream(stream, id, meta) {
-  streams[id] = streams[id] || {}
-  const el = document.createElement(meta.tipo === 'pantalla' ? 'video' : 'audio')
-  el.srcObject = stream; el.autoplay = true; el.playsInline = true
-  if (meta.tipo === 'pantalla') { el.controls = true; $('stage').append(el); $('stage').style.display = 'flex' }
-  else { el.style.display = 'none'; document.body.append(el) }
-  el.play?.().catch(() => sys('Tocá la pantalla para activar el audio.'))
-  streams[id][meta.tipo] = el
+/* ---------- Voz y pantalla: solo se envían a quienes están en tu mismo canal ---------- */
+function sincronizar() {
+  Object.entries(peers).forEach(([id, p]) => ['voz', 'pantalla'].forEach(t => {
+    const s = salida[t]; if (!s) return
+    const k = t + id, debe = p.canal === canal
+    if (debe && !enviados.has(k)) { room.addStream(s, id, { tipo: t, c: canal }); enviados.add(k) }
+    else if (!debe && enviados.has(k)) { try { room.removeStream(s, id) } catch {} enviados.delete(k) }
+  }))
 }
-function quitarStream(id) {
-  const s = streams[id]; if (!s) return
-  Object.values(s).forEach(el => el.remove()); delete streams[id]
+function detener(t) {
+  const s = salida[t]; if (!s) return
+  ;[...enviados].filter(k => k.startsWith(t)).forEach(k => { try { room.removeStream(s, k.slice(t.length)) } catch {} enviados.delete(k) })
+  s.getTracks().forEach(x => x.stop()); salida[t] = null
+  acts.sendFin({ tipo: t }); uiMedia()
+}
+function uiMedia() {
+  $('bMic').textContent = salida.voz ? 'Salir de voz' : 'Activar voz'; $('bMic').classList.toggle('on', !!salida.voz)
+  $('bMute').disabled = !salida.voz; $('bMute').textContent = 'Silenciar'
+  $('bScr').textContent = salida.pantalla ? 'Dejar de compartir' : 'Compartir pantalla'; $('bScr').classList.toggle('on', !!salida.pantalla)
+}
+function mostrarStream(stream, id, meta) {
+  const t = meta.tipo === 'pantalla' ? 'pantalla' : 'voz'
+  if (meta.c !== canal) return
+  quitarRemoto(id, t)
+  const el = document.createElement(t === 'pantalla' ? 'video' : 'audio')
+  el.srcObject = stream; el.autoplay = true; el.playsInline = true
+  if (t === 'pantalla') { el.controls = true; $('stage').append(el); $('stage').style.display = 'flex' }
+  else { el.hidden = true; document.body.append(el) }
+  if (el.play) el.play().catch(() => sys('Tocá la pantalla para activar el audio.'))
+  remotos[id] = remotos[id] || {}; remotos[id][t] = el
+}
+function quitarRemoto(id, t) {
+  const r = remotos[id]; if (!r) return
+  const ks = t ? [t] : Object.keys(r)
+  ks.forEach(k => { if (r[k]) { r[k].remove(); delete r[k] } })
   if (!$('stage').children.length) $('stage').style.display = 'none'
 }
+function quitarTodosRemotos() { Object.keys(remotos).forEach(id => quitarRemoto(id)) }
+
 $('bMic').onclick = async () => {
-  if (mic) { room.removeStream(mic); mic.getTracks().forEach(t => t.stop()); mic = null
-    $('bMic').textContent = 'Activar voz'; $('bMic').classList.remove('on'); $('bMute').disabled = true; return }
+  if (salida.voz) return detener('voz')
   try {
-    mic = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } })
-    room.addStream(mic, null, { tipo: 'voz' })
-    $('bMic').textContent = 'Salir de voz'; $('bMic').classList.add('on'); $('bMute').disabled = false
+    salida.voz = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } })
+    sincronizar(); uiMedia()
   } catch { sys('No se pudo usar el micrófono. Revisá el permiso del navegador.') }
 }
 $('bMute').onclick = () => {
-  const t = mic.getAudioTracks()[0]; t.enabled = !t.enabled
+  const t = salida.voz.getAudioTracks()[0]; t.enabled = !t.enabled
   $('bMute').textContent = t.enabled ? 'Silenciar' : 'Activar mic'
 }
 $('bScr').onclick = async () => {
-  if (screen) return pararPantalla()
+  if (salida.pantalla) return detener('pantalla')
   try {
-    screen = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 30 }, audio: true })
-    room.addStream(screen, null, { tipo: 'pantalla' })
-    screen.getVideoTracks()[0].onended = pararPantalla
-    $('bScr').textContent = 'Dejar de compartir'; $('bScr').classList.add('on')
-  } catch { screen = null }
+    salida.pantalla = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 30 }, audio: true })
+    salida.pantalla.getVideoTracks()[0].onended = () => detener('pantalla')
+    sincronizar(); uiMedia()
+  } catch { salida.pantalla = null }
 }
-function pararPantalla() {
-  if (!screen) return
-  room.removeStream(screen); screen.getTracks().forEach(t => t.stop()); screen = null
-  $('bScr').textContent = 'Compartir pantalla'; $('bScr').classList.remove('on')
-}
-function pararMedia() {
-  pararPantalla()
-  if (mic) { mic.getTracks().forEach(t => t.stop()); mic = null }
-  $('bMic').textContent = 'Activar voz'; $('bMic').classList.remove('on'); $('bMute').disabled = true
-  Object.keys(streams).forEach(quitarStream)
-}
+
+/* ---------- Si recargaste con "Reconectar", entra solo ---------- */
+try { const p = sessionStorage.getItem('rancho-pwd')
+  if (p && $('nick').value && $('srv').value) { $('pwd').value = p; $('f').requestSubmit() } } catch {}
 </script>
 </body>
 </html>
