@@ -9,54 +9,76 @@
 *{box-sizing:border-box}
 html,body{height:100%;margin:0;overflow:hidden}
 body{background:var(--bg);color:var(--txt);font:15px/1.45 "Trebuchet MS","Segoe UI",sans-serif}
-button,input{font:inherit;color:inherit}
+button,input,select{font:inherit;color:inherit}
 button{background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:7px 12px;cursor:pointer}
-button:hover{border-color:var(--acc)}
+button:hover:not(:disabled){border-color:var(--acc)}
+button:disabled{opacity:.5;cursor:default}
 button.on{background:var(--acc);color:#1b1d1a;border-color:var(--acc)}
-button:focus-visible,input:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
-input{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:9px 11px;width:100%}
-#login{height:100%;display:grid;place-items:center;padding:16px}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+input,select{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:9px 11px;width:100%}
+#login{height:100%;display:grid;place-items:center;padding:16px;overflow:auto}
 #login form{width:min(380px,100%);display:grid;gap:10px}
+details{display:grid;gap:8px}
+summary{cursor:pointer}
 h1{margin:0 0 4px;font-size:26px}
 .dim{color:var(--dim);font-size:13px}
-#app{display:none;height:100%;grid-template-columns:210px minmax(0,1fr) 190px;grid-template-rows:minmax(0,1fr)}
+#app{display:none;height:100%;grid-template-columns:220px minmax(0,1fr) 190px;grid-template-rows:minmax(0,1fr)}
 aside{background:var(--panel);padding:12px;overflow:auto;display:flex;flex-direction:column;gap:6px}
 aside h2{font-size:13px;color:var(--dim);margin:8px 0 2px;font-weight:600}
 .row{display:flex;gap:2px}
-.ch{text-align:left;flex:1;border:0;background:none;padding:7px 8px}
+.ch{text-align:left;flex:1;border:0;background:none;padding:7px 8px;width:100%}
 .ch.on{background:var(--panel2);color:var(--acc)}
 .ch.new{font-weight:700}
 .ch.new::after{content:" •";color:var(--acc)}
 .x{border:0;background:none;color:var(--dim);padding:7px 8px}
 .x:hover{color:#d9674f}
+.vp{padding-left:22px;font-size:13px}
+.vp.hab{color:var(--ok)}
 #add{width:100%;margin-top:4px}
 main{display:flex;flex-direction:column;min-width:0;min-height:0}
-#msgwrap{position:relative;flex:1;min-height:0;display:flex}
-#down{display:none;position:absolute;right:18px;bottom:12px;border-radius:999px;background:var(--acc);color:#1b1d1a;border-color:var(--acc);box-shadow:0 2px 10px #0008}
 #bar{padding:10px 14px;border-bottom:1px solid var(--line);display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 #bar b{margin-right:auto}
+#xfers{display:none;border-bottom:1px solid var(--line);background:var(--panel)}
+.xf{display:flex;align-items:center;gap:8px;padding:6px 14px;font-size:13px}
+.xf span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:45%}
+.bar{flex:1;height:6px;background:var(--panel2);border-radius:3px}
+.bar i{display:block;height:100%;width:0;background:var(--acc);border-radius:3px}
 #stage{display:none;gap:8px;padding:8px;background:#000;flex-wrap:wrap;max-height:45%;overflow:auto}
 #stage video{max-width:100%;max-height:260px;background:#111;border-radius:6px}
+#msgwrap{position:relative;flex:1;min-height:0;display:flex}
 #msgs{flex:1;min-height:0;overflow:auto;padding:14px;display:flex;flex-direction:column;gap:10px}
-.m{overflow-wrap:anywhere}
-.m b{color:var(--acc)}
-.m.me b{color:var(--ok)}
+#down{display:none;position:absolute;right:18px;bottom:12px;border-radius:999px;background:var(--acc);color:#1b1d1a;border-color:var(--acc);box-shadow:0 2px 10px #0008}
+.m{overflow-wrap:anywhere;position:relative}
+.m>small.t{color:var(--dim);margin:0 4px}
 .m.sys{color:var(--dim);font-size:13px}
 .m a{color:var(--acc)}
+.dia{align-self:center;color:var(--dim);font-size:12px;border:1px solid var(--line);border-radius:999px;padding:1px 12px;text-transform:capitalize}
+.cita{border-left:3px solid var(--line);padding:1px 8px;margin:3px 0;color:var(--dim);font-size:13px}
+.acc{position:absolute;right:0;top:-6px;display:none;gap:2px;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:1px}
+.m:hover .acc,.m:focus-within .acc{display:flex}
+.acc button{border:0;background:none;padding:2px 7px}
+@media(hover:none){.acc{display:flex;opacity:.7}}
 .adj{display:block;width:fit-content;max-width:100%;margin-top:4px;padding:6px;border:2px solid #5d6558;border-radius:10px;background:var(--panel)}
 .adj img,.adj video{display:block;max-width:min(420px,100%);max-height:320px;border-radius:6px}
 .adj img{cursor:zoom-in}
+.oferta{display:flex;flex-wrap:wrap;gap:8px;align-items:center;border:2px solid var(--acc);border-radius:10px;padding:8px 10px;color:var(--txt);font-size:14px}
 .m iframe{display:block;margin-top:6px;width:min(480px,100%);aspect-ratio:16/9;border:0;border-radius:6px;background:#000}
+#reply{display:none;align-items:center;gap:8px;padding:6px 14px;border-top:1px solid var(--line);background:var(--panel);font-size:13px;color:var(--dim)}
+#reply span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #send{position:relative;display:flex;gap:8px;padding:12px;border-top:1px solid var(--line);background:var(--bg)}
 #bEmo{font-size:18px;padding:4px 10px}
-#emo{display:none;position:absolute;right:12px;bottom:calc(100% + 6px);z-index:10;border-radius:10px;overflow:hidden;background:var(--panel);box-shadow:0 6px 24px #000a;color:var(--dim);padding:0}
+#emo{display:none;position:absolute;right:12px;bottom:calc(100% + 6px);z-index:10;border-radius:10px;overflow:hidden;background:var(--panel);box-shadow:0 6px 24px #000a;color:var(--dim)}
 #emo emoji-picker{width:min(340px,92vw);height:360px}
-#prog{height:3px;background:var(--acc);width:0;transition:width .15s}
 .peer{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:14px}
 .peer input[type=range]{width:100%;padding:0;border:0;background:none;accent-color:var(--acc)}
 .dot{width:8px;height:8px;border-radius:50%;background:var(--ok);flex:none}
+.peer.hab .dot{background:#9be39f;box-shadow:0 0 0 3px #6fbf7366}
 body.drag #msgs{outline:2px dashed var(--acc);outline-offset:-8px}
-@media(max-width:720px){#app{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr) auto}aside{flex-direction:row;flex-wrap:wrap;align-items:center;padding:6px 10px}aside h2{display:none}#chs{display:flex;flex-wrap:wrap}#peers{max-height:110px;flex-direction:column;flex-wrap:nowrap;align-items:stretch}#add{width:auto;margin:0}}
+dialog{background:var(--panel);color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:16px;width:min(440px,94vw)}
+dialog::backdrop{background:#000a}
+dialog label{display:grid;gap:4px;margin:10px 0}
+dialog .fila{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
+@media(max-width:720px){#app{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr) auto}aside{flex-direction:row;flex-wrap:wrap;align-items:center;padding:6px 10px}aside h2{display:none}#chs,#vz{display:flex;flex-wrap:wrap}.ch{width:auto}#peers{max-height:110px;flex-direction:column;flex-wrap:nowrap;align-items:stretch}#add{width:auto;margin:0}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -69,37 +91,49 @@ body.drag #msgs{outline:2px dashed var(--acc);outline-offset:-8px}
     <input id="nick" placeholder="Tu apodo" required maxlength="20" autocomplete="off">
     <input id="srv" placeholder="Nombre de la sala (ej: los-pibes)" required autocomplete="off">
     <input id="pwd" type="password" placeholder="Clave" required>
+    <details id="turnbox">
+      <summary class="dim">Avanzado: servidor TURN (si alguien no logra conectarse)</summary>
+      <input id="turnUrl" placeholder="turn:servidor:3478  (varias separadas por coma)" autocomplete="off">
+      <input id="turnUser" placeholder="Usuario del TURN" autocomplete="off">
+      <input id="turnCred" type="password" placeholder="Clave del TURN" autocomplete="off">
+      <span class="dim">Se guarda solo en este navegador. Conviene que los dos lo carguen.</span>
+    </details>
     <button class="on" type="submit">Entrar</button>
   </form>
 </div>
 
 <div id="app">
   <aside>
-    <h2>Canales</h2>
+    <h2>Canales de texto</h2>
     <div id="chs"></div>
     <button id="add">+ Crear canal</button>
+    <h2>Canales de voz</h2>
+    <div id="vz"></div>
     <h2>Conexión</h2>
-    <span class="dim" id="status">Buscando amigos…</span>
+    <span class="dim" id="status">Conectando…</span>
     <button id="reco">Reconectar</button>
-    <button id="salir">Salir</button>
     <button id="snd">Sonido: sí</button>
+    <button id="avi">Avisos: no</button>
+    <button id="ajus">Ajustes</button>
+    <button id="salir">Salir</button>
   </aside>
   <main>
     <div id="bar">
       <b id="title"></b>
-      <button id="bMic">Activar voz</button>
       <button id="bMute" disabled>Silenciar</button>
+      <button id="bPtt" hidden>Mantené para hablar</button>
       <button id="bRuido" class="on">Supresión de ruido: sí</button>
       <button id="bScr">Compartir pantalla</button>
       <button id="bFile">Enviar archivo</button>
       <input type="file" id="file" hidden>
     </div>
-    <div id="prog"></div>
+    <div id="xfers"></div>
     <div id="stage"></div>
     <div id="msgwrap">
       <div id="msgs" aria-live="polite"></div>
       <button id="down">↓ Ir al final</button>
     </div>
+    <div id="reply"><span id="replyTxt"></span><button id="replyX" aria-label="Cancelar respuesta">✕</button></div>
     <div id="send">
       <input id="txt" placeholder="Escribí un mensaje, pegá una imagen o un link" autocomplete="off">
       <button id="bEmo" type="button" aria-label="Emojis" title="Emojis">😊</button>
@@ -110,27 +144,67 @@ body.drag #msgs{outline:2px dashed var(--acc);outline-offset:-8px}
   <aside id="peers"><h2>Conectados</h2><div id="plist"></div></aside>
 </div>
 
+<dialog id="cfgd">
+  <h2 style="margin:0">Ajustes</h2>
+  <label>Micrófono<select id="selMic"></select></label>
+  <label>Parlantes<select id="selOut"></select></label>
+  <label>Calidad al compartir pantalla
+    <select id="selCal">
+      <option value="media">Media (720p, 30 fps)</option>
+      <option value="baja">Baja (720p, 15 fps)</option>
+      <option value="alta">Alta (1080p, 30 fps)</option>
+      <option value="max">Máxima (1080p, 60 fps)</option>
+    </select>
+  </label>
+  <label style="grid-auto-flow:column;justify-content:start;align-items:center;gap:8px"><input type="checkbox" id="chkPtt" style="width:auto"> Pulsar para hablar (botón o tecla V)</label>
+  <p class="dim" id="persist"></p>
+  <div class="fila">
+    <button id="bExp">Exportar historial</button>
+    <button id="bLimpiaC">Borrar historial de este canal</button>
+    <button id="bLimpiaT">Borrar todo el historial</button>
+  </div>
+  <form method="dialog"><button class="on">Cerrar</button></form>
+</dialog>
+
 <script type="module">
-// Trackers de torrent para encontrarse. Si no conectan, probá con 'trystero@0.21.5/nostr'.
-import { joinRoom } from 'https://cdn.jsdelivr.net/npm/trystero@0.21.5/torrent/+esm'
+// Trystero: usa tu copia local (trystero-torrent.js, al lado de este archivo) si existe; si no, la baja de la CDN.
+let joinRoom
+try { ({ joinRoom } = await import('./trystero-torrent.js')) }
+catch { ({ joinRoom } = await import('https://cdn.jsdelivr.net/npm/trystero@0.21.5/torrent/+esm')) }
 
 const $ = id => document.getElementById(id)
-const CHUNK = 256 * 1024, MAXSAVE = 25 * 1048576
+const CHUNK = 256 * 1024, MAXSAVE = 25 * 1048576, GRANDE = 100 * 1048576
+const SALAS_VOZ = ['Voz 1', 'Voz 2']
+const CAL = { baja: [1280, 720, 15], media: [1280, 720, 30], alta: [1920, 1080, 30], max: [1920, 1080, 60] }
 let cfg, room, canal = 'general', nick, acts = {}, db = null
 let estado = { general: { ts: 0, del: false } }, canales = ['general'], noLeidos = new Set()
 let peers = {}, salida = { voz: null, pantalla: null }, enviados = new Set(), remotos = {}
-let volumenes = {}, nuevos = 0, ruido = true, ac = null, sonido = true
+let volumenes = {}, nuevos = 0, ruido = true, ac = null, sonido = true, avisos = false
+let vozCanal = null, muteado = false, ptt = false, pttOn = false, devMic = '', devOut = '', calidad = 'media'
+let respuesta = null, ultimoDia = '', noVistos = 0
+const rx = {}, envios = {}, avisados = new Set()
 
-const rtcConfig = { iceServers: [
-  { urls: 'stun:stun.l.google.com:19302' },
-  { urls: 'stun:stun1.l.google.com:19302' }
-  // Para TURN: { urls:'turn:...', username:'...', credential:'...' }
-] }
+const nuevoId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7)
 const limpio = n => n.toLowerCase().trim().replace(/[^a-z0-9_-]+/g, '-').replace(/^[-_]+|-+$/g, '').slice(0, 20)
 const fmt = b => b < 1048576 ? Math.max(1, Math.round(b / 1024)) + ' KB' : (b / 1048576).toFixed(1) + ' MB'
+const color = n => { let h = 0; for (const ch of String(n)) h = (h * 31 + ch.charCodeAt(0)) % 360; return 'hsl(' + h + ' 65% 68%)' }
+const idLimpio = s => String(s || '').replace(/[^\w-]/g, '').slice(0, 24)
 
-// Sonido suave de mensaje nuevo (sintetizado, sin archivos). Volumen bajo a propósito.
-try { sonido = localStorage.getItem('rancho-sonido') !== '0' } catch {}
+// Seguridad: solo se muestran como imagen/video/audio los formatos comunes. Todo lo demás (SVG, HTML…) es descarga.
+const IMG = /^image\/(png|jpe?g|gif|webp)$/, VID = /^video\/(mp4|webm|ogg)$/, AUD = /^audio\/(mpeg|ogg|wav|webm|mp4|aac)$/
+const mimeOk = m => { m = String(m || '').toLowerCase(); return IMG.test(m) || VID.test(m) || AUD.test(m) ? m : 'application/octet-stream' }
+const nombreOk = n => String(n || 'archivo').replace(/[\\/:*?"<>|]+/g, '_').slice(0, 120)
+
+/* ---------- Ajustes guardados ---------- */
+try {
+  const a = JSON.parse(localStorage.getItem('rancho-aj') || '{}')
+  devMic = a.devMic || ''; devOut = a.devOut || ''; ptt = !!a.ptt; avisos = !!a.avisos
+  if (CAL[a.calidad]) calidad = a.calidad
+  sonido = localStorage.getItem('rancho-sonido') !== '0'
+} catch {}
+const guardarAj = () => { try { localStorage.setItem('rancho-aj', JSON.stringify({ devMic, devOut, ptt, avisos, calidad })) } catch {} }
+
+/* ---------- Sonido suave de mensaje nuevo ---------- */
 ;['pointerdown', 'keydown'].forEach(ev => document.addEventListener(ev, () => { if (ac && ac.state === 'suspended') ac.resume() }))
 function ping() {
   if (!sonido || !ac) return
@@ -141,12 +215,25 @@ function ping() {
     o.connect(g).connect(ac.destination); o.start(t); o.stop(t + 0.26)
   } catch {}
 }
+function avisarNuevo(rec) {
+  if (!document.hidden) return
+  noVistos++; document.title = '(' + noVistos + ') Rancho P2P'
+  if (avisos && 'Notification' in window && Notification.permission === 'granted') {
+    try { new Notification(rec.who + ' · #' + rec.c, { body: rec.k === 't' ? rec.t.slice(0, 120) : '📎 ' + rec.nombre, silent: true }) } catch {}
+  }
+}
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { noVistos = 0; document.title = 'Rancho P2P' } })
 
-/* ---------- Historial local (IndexedDB, uno por sala, indexado por canal) ---------- */
+/* ---------- Historial local (IndexedDB, uno por sala) ---------- */
 function abrirDB() {
   return new Promise(r => { try {
-    const q = indexedDB.open('rancho-' + cfg.appId, 1)
-    q.onupgradeneeded = () => q.result.createObjectStore('m', { autoIncrement: true }).createIndex('c', 'c')
+    const q = indexedDB.open('rancho-' + cfg.appId, 2)
+    q.onupgradeneeded = () => {
+      const d = q.result; let st
+      if (!d.objectStoreNames.contains('m')) { st = d.createObjectStore('m', { autoIncrement: true }); st.createIndex('c', 'c') }
+      else st = q.transaction.objectStore('m')
+      if (!st.indexNames.contains('i')) st.createIndex('i', 'id')
+    }
     q.onsuccess = () => r(q.result); q.onerror = () => r(null)
   } catch { r(null) } })
 }
@@ -163,28 +250,57 @@ function borrarHist(c) {
   try { const q = db.transaction('m', 'readwrite').objectStore('m').index('c').openCursor(IDBKeyRange.only(c))
     q.onsuccess = () => { const k = q.result; if (k) { k.delete(); k.continue() } } } catch {}
 }
+// Edita o borra un mensaje; solo si lo pide su autor ('me' = vos, o el id del amigo que lo envió)
+function tocar(id, autor, cambio) {
+  return new Promise(r => { if (!db || !id) return r(false)
+    try {
+      const q = db.transaction('m', 'readwrite').objectStore('m').index('i').openCursor(IDBKeyRange.only(id))
+      q.onsuccess = () => {
+        const k = q.result; if (!k) return r(false)
+        const v = k.value, ok = autor === 'me' ? v.me : v.de === autor
+        if (!ok || (cambio && v.k !== 't')) return r(false)
+        if (cambio) k.update({ ...v, ...cambio }); else k.delete()
+        r(true)
+      }
+      q.onerror = () => r(false)
+    } catch { r(false) } })
+}
 
 /* ---------- Login ---------- */
-try { $('nick').value = localStorage.getItem('rancho-nick') || ''; $('srv').value = localStorage.getItem('rancho-sala') || '' } catch {}
+try {
+  $('nick').value = localStorage.getItem('rancho-nick') || ''; $('srv').value = localStorage.getItem('rancho-sala') || ''
+  const t = JSON.parse(localStorage.getItem('rancho-turn') || 'null')
+  if (t) { $('turnUrl').value = t.u; $('turnUser').value = t.us; $('turnCred').value = t.c; $('turnbox').open = true }
+} catch {}
 ;($('nick').value && $('srv').value ? $('pwd') : $('nick').value ? $('srv') : $('nick')).focus()
 
+function ice() {
+  const s = [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }]
+  const urls = $('turnUrl').value.split(/[\s,]+/).filter(x => /^turns?:/i.test(x))
+  if (urls.length) s.push({ urls, username: $('turnUser').value.trim(), credential: $('turnCred').value.trim() })
+  return { iceServers: s }
+}
 $('f').onsubmit = async e => {
   e.preventDefault()
   nick = $('nick').value.trim()
-  try { localStorage.setItem('rancho-nick', nick); localStorage.setItem('rancho-sala', $('srv').value.trim())
-    sessionStorage.setItem('rancho-pwd', $('pwd').value) } catch {}   // la clave solo dura mientras la pestaña esté abierta
-  cfg = { appId: 'rancho-p2p-' + $('srv').value.trim().toLowerCase(), password: $('pwd').value, rtcConfig }
+  try {
+    localStorage.setItem('rancho-nick', nick); localStorage.setItem('rancho-sala', $('srv').value.trim())
+    localStorage.setItem('rancho-turn', JSON.stringify({ u: $('turnUrl').value.trim(), us: $('turnUser').value.trim(), c: $('turnCred').value }))
+    sessionStorage.setItem('rancho-pwd', $('pwd').value)   // solo dura mientras la pestaña esté abierta
+  } catch {}
+  cfg = { appId: 'rancho-p2p-' + $('srv').value.trim().toLowerCase(), password: $('pwd').value, rtcConfig: ice() }
   $('login').style.display = 'none'; $('app').style.display = 'grid'
   try { ac = new (window.AudioContext || window.webkitAudioContext)() } catch {}
+  try { navigator.storage?.persist?.() } catch {}
   db = await abrirDB()
   try { const g = JSON.parse(localStorage.getItem('canales2-' + cfg.appId))
     if (g && typeof g === 'object') Object.entries(g).forEach(([c, v]) => fusionar(c, v, false)) } catch {}
-  iniciarSala(); pintarCanales(); entrar('general')
+  iniciarSala(); pintarCanales(); pintarVoz(); uiMedia(); entrar('general')
 }
 $('reco').onclick = () => location.reload()
 $('salir').onclick = () => { try { sessionStorage.removeItem('rancho-pwd') } catch {} location.reload() }
 
-/* ---------- Canales: etiquetas dentro de una única sala; gana el cambio más nuevo ---------- */
+/* ---------- Canales de texto: etiquetas dentro de una sola sala; gana el cambio más nuevo ---------- */
 function recalcular() { canales = Object.keys(estado).filter(c => !estado[c].del) }
 function guardarCanales() { try { localStorage.setItem('canales2-' + cfg.appId, JSON.stringify(estado)) } catch {} }
 function cambiar(c, del) {
@@ -224,7 +340,7 @@ $('add').onclick = () => {
   entrar(c)
 }
 
-/* ---------- Render ---------- */
+/* ---------- Render de mensajes ---------- */
 const URL_RE = /https?:\/\/[^\s<]+/g
 function ytId(u) {
   try {
@@ -263,38 +379,102 @@ function botonBajar() {
 function bajar(suave) { const m = $('msgs'); m.scrollTo({ top: m.scrollHeight, behavior: suave ? 'smooth' : 'auto' }); nuevos = 0; botonBajar() }
 $('msgs').onscroll = botonBajar
 $('down').onclick = () => bajar(true)
-function add(cls, who, contenido) {
+
+const elMsg = id => [...$('msgs').children].find(e => e.dataset.id === id)
+function aplicarEdicion(id, t) {
+  const e = elMsg(id); if (!e) return
+  const c = e.querySelector('.cuerpo'); c.replaceChildren(renderTexto(t))
+  if (!e.querySelector('.ed')) { const s = document.createElement('small'); s.className = 'ed dim'; s.textContent = ' (editado)'; c.after(s) }
+}
+const quitarMsg = id => { const e = elMsg(id); if (e) e.remove() }
+function btn(txt, tit, fn) { const b = document.createElement('button'); b.textContent = txt; b.title = tit; b.setAttribute('aria-label', tit); b.onclick = fn; return b }
+function responderA(rec) {
+  respuesta = { id: rec.id, who: rec.who, t: rec.k === 't' ? rec.t.slice(0, 80) : '📎 ' + rec.nombre }
+  $('replyTxt').textContent = 'Respondiendo a ' + respuesta.who + ': ' + respuesta.t
+  $('reply').style.display = 'flex'; $('txt').focus()
+}
+$('replyX').onclick = () => { respuesta = null; $('reply').style.display = 'none' }
+
+function add(cls, who, contenido, rec) {
   const pegado = cercaFinal()
+  if (rec && rec.ts) {
+    const dia = new Date(rec.ts).toDateString()
+    if (dia !== ultimoDia) {
+      ultimoDia = dia
+      const s = document.createElement('div'); s.className = 'dia'
+      s.textContent = new Date(rec.ts).toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' }); $('msgs').append(s)
+    }
+  }
   const d = document.createElement('div'); d.className = 'm ' + cls
-  if (who) { const b = document.createElement('b'); b.textContent = who + ': '; d.append(b) }
-  d.append(contenido); $('msgs').append(d)
+  if (who) {
+    const b = document.createElement('b'); b.textContent = who; b.style.color = color(who); d.append(b)
+    if (rec && rec.ts) { const h = document.createElement('small'); h.className = 't'; h.textContent = new Date(rec.ts).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }); d.append(h) }
+    else d.append(document.createTextNode(': '))
+  }
+  if (rec) {
+    d.dataset.id = rec.id || ''
+    if (rec.re) { const q = document.createElement('div'); q.className = 'cita'; q.textContent = '↩ ' + rec.re.who + ': ' + rec.re.t; d.append(q) }
+  }
+  const c = document.createElement('span'); c.className = 'cuerpo'; c.append(contenido); d.append(c)
+  if (rec && rec.ed) { const s = document.createElement('small'); s.className = 'ed dim'; s.textContent = ' (editado)'; d.append(s) }
+  if (rec && rec.id) {
+    const a = document.createElement('span'); a.className = 'acc'
+    a.append(btn('↩', 'Responder', () => responderA(rec)))
+    if (rec.me && rec.k === 't') a.append(btn('✎', 'Editar', () => {
+      const t = (prompt('Editar mensaje', rec.t) || '').trim()
+      if (!t || t === rec.t) return
+      rec.t = t; tocar(rec.id, 'me', { t, ed: true }); aplicarEdicion(rec.id, t); acts.sendMod({ op: 'e', id: rec.id, c: rec.c, t })
+    }))
+    if (rec.me) a.append(btn('🗑', 'Borrar para todos', () => {
+      if (!confirm('¿Borrar este mensaje para todos?')) return
+      tocar(rec.id, 'me', null); quitarMsg(rec.id); acts.sendMod({ op: 'd', id: rec.id, c: rec.c })
+    }))
+    d.append(a)
+  }
+  $('msgs').append(d)
   if (pegado || cls === 'me') bajar(); else { if (cls !== 'sys') nuevos++; botonBajar() }
 }
 const sys = t => add('sys', '', document.createTextNode(t))
+
 function pintarMsg(rec) {
   const cls = rec.me ? 'me' : '', pegado = cercaFinal() || rec.me
-  if (rec.k === 't') return add(cls, rec.who, renderTexto(rec.t))
+  if (rec.k === 't') return add(cls, rec.who, renderTexto(rec.t), rec)
   const w = document.createElement('div'); w.className = 'adj'
-  if (!rec.blob) { w.textContent = rec.nombre + ' (' + fmt(rec.size) + ', demasiado grande para guardarse)'; return add(cls, rec.who, w) }
-  const url = URL.createObjectURL(rec.blob), m = String(rec.mime || rec.blob.type || '')
-  if (m.startsWith('image/')) {
-    const a = document.createElement('a'); a.href = url; a.target = '_blank'
-    const img = document.createElement('img'); img.src = url; img.alt = rec.nombre; img.onload = () => { if (pegado) bajar() }
-    a.append(img); w.append(a)
-  } else if (m.startsWith('video/') || m.startsWith('audio/')) {
-    const v = document.createElement(m.startsWith('video/') ? 'video' : 'audio'); v.src = url; v.controls = true; v.preload = 'metadata'; v.onloadedmetadata = () => { if (pegado) bajar() }; w.append(v)
-  } else {
-    const a = document.createElement('a'); a.href = url; a.download = rec.nombre; a.textContent = rec.nombre + ' (' + fmt(rec.size) + ')'; w.append(a)
+  if (!rec.blob) {
+    w.textContent = nombreOk(rec.nombre) + ' (' + fmt(rec.size) + (rec.disco ? ') — guardado en tu disco' : ') — demasiado grande para guardarse en el historial')
+    return add(cls, rec.who, w, rec)
   }
-  add(cls, rec.who, w)
+  const url = URL.createObjectURL(rec.blob), m = mimeOk(rec.mime)
+  if (IMG.test(m)) {
+    const a = document.createElement('a'); a.href = url; a.target = '_blank'; a.rel = 'noopener'
+    const img = document.createElement('img'); img.src = url; img.alt = nombreOk(rec.nombre); img.onload = () => { if (pegado) bajar() }
+    a.append(img); w.append(a)
+  } else if (VID.test(m) || AUD.test(m)) {
+    const v = document.createElement(VID.test(m) ? 'video' : 'audio'); v.src = url; v.controls = true; v.preload = 'metadata'
+    v.onloadedmetadata = () => { if (pegado) bajar() }; w.append(v)
+  } else {
+    const a = document.createElement('a'); a.href = url; a.download = nombreOk(rec.nombre)
+    a.textContent = nombreOk(rec.nombre) + ' (' + fmt(rec.size) + ')'; w.append(a)
+  }
+  add(cls, rec.who, w, rec)
+}
+
+/* ---------- Conectados y estado de conexión ---------- */
+let fallos = []
+function textoEstado() {
+  if (!navigator.onLine) return 'Sin internet. Reconecta solo al volver.'
+  const n = Object.keys(peers).length
+  let t = n ? n + ' amigo(s) conectado(s)' : 'Esperando amigos…'
+  if (fallos.length) t += '. No se pudo conectar con ' + fallos.join(', ') + ': probá con "Reconectar" o cargá un TURN.'
+  return t
 }
 function pintarPeers() {
   const l = $('plist'); l.innerHTML = ''
   const fila = (txt, id) => {
-    const d = document.createElement('div'); d.className = 'peer'
+    const d = document.createElement('div'); d.className = 'peer'; d.dataset.k = id || 'yo'
     d.innerHTML = '<span class="dot"></span>'
     const s = document.createElement('span'); s.textContent = txt; d.append(s)
-    if (id && remotos[id] && remotos[id].voz) {   // control de volumen de quien está hablando
+    if (id && remotos[id] && remotos[id].voz) {
       const r = document.createElement('input'); r.type = 'range'; r.min = 0; r.max = 1; r.step = 0.05
       r.value = volumenes[id] ?? 1; r.title = 'Volumen de ' + txt; r.setAttribute('aria-label', 'Volumen de ' + txt)
       r.oninput = () => { volumenes[id] = +r.value; if (remotos[id] && remotos[id].voz) remotos[id].voz.volume = volumenes[id] }
@@ -304,11 +484,30 @@ function pintarPeers() {
   }
   fila(nick + ' (vos)')
   Object.entries(peers).forEach(([id, p]) => fila((p.nick || 'alguien') + (p.canal && p.canal !== canal ? '  #' + p.canal : ''), id))
-  const n = Object.keys(peers).length
-  $('status').textContent = n ? n + ' amigo(s) conectado(s)' : 'Buscando amigos…'
+  $('status').textContent = textoEstado()
+}
+setInterval(() => {
+  const pcs = room && room.getPeers ? room.getPeers() : {}, malos = []
+  Object.entries(pcs).forEach(([id, pc]) => { if (pc.connectionState === 'failed') malos.push((peers[id] && peers[id].nick) || 'alguien') })
+  const cambio = malos.join() !== fallos.join(); fallos = malos
+  if (cambio && $('status')) $('status').textContent = textoEstado()
+}, 3000)
+window.addEventListener('offline', () => { $('status').textContent = textoEstado() })
+window.addEventListener('online', () => { $('status').textContent = 'Volvió internet, reconectando…'; setTimeout(() => location.reload(), 1500) })
+
+function pintarVoz() {
+  const v = $('vz'); v.innerHTML = ''
+  SALAS_VOZ.forEach(s => {
+    const b = document.createElement('button'); b.className = 'ch' + (vozCanal === s ? ' on' : ''); b.textContent = '🔊 ' + s
+    b.title = vozCanal === s ? 'Salir de ' + s : 'Entrar a ' + s
+    b.onclick = () => vozCanal === s ? salirVoz() : unirVoz(s); v.append(b)
+    const quienes = [...(vozCanal === s ? [['yo', nick + ' (vos)']] : []), ...Object.entries(peers).filter(([, p]) => p.voz === s).map(([id, p]) => [id, p.nick])]
+    quienes.forEach(([k, n]) => { const d = document.createElement('div'); d.className = 'dim vp'; d.dataset.k = k; d.textContent = '· ' + n; v.append(d) })
+  })
 }
 
 /* ---------- Sala única ---------- */
+const perfil = () => ({ nick, canal, voz: vozCanal })
 function iniciarSala() {
   room = joinRoom(cfg, 'main')
   const [sendMsg, onMsg] = room.makeAction('chat')
@@ -316,81 +515,156 @@ function iniciarSala() {
   const [sendFile, onFile] = room.makeAction('archivo')
   const [sendCan, onCan] = room.makeAction('canales')
   const [sendFin, onFin] = room.makeAction('fin')
-  acts = { sendMsg, sendPerfil, sendFile, sendCan, sendFin }
+  const [sendMod, onMod] = room.makeAction('mod')
+  const [sendCtl, onCtl] = room.makeAction('ctl')
+  acts = { sendMsg, sendPerfil, sendFile, sendCan, sendFin, sendMod, sendCtl }
 
   room.onPeerJoin(id => {
-    peers[id] = { nick: 'alguien', canal: null }
-    sendPerfil({ nick, canal }, id); sendCan({ t: 'estado', e: estado }, id); pintarPeers()
+    peers[id] = { nick: 'alguien', canal: null, voz: null }
+    sendPerfil(perfil(), id); sendCan({ t: 'estado', e: estado }, id); pintarPeers()
   })
   room.onPeerLeave(id => {
     delete peers[id]; quitarRemoto(id)
     ;[...enviados].filter(k => k.endsWith(id)).forEach(k => enviados.delete(k))
-    pintarPeers()
+    Object.keys(rx).filter(k => k.startsWith(id)).forEach(k => { const r = rx[k]; delete rx[k]; r.cancel = true; if (r.w) r.w.abort().catch(() => {}); if (r.ui) r.ui.fin() })
+    Object.values(envios).forEach(e => e.dest && e.dest.delete(id))
+    pintarPeers(); pintarVoz()
   })
   onPerfil((p, id) => {
-    const c = limpio(String(p.canal || 'general')) || 'general'
-    peers[id] = { nick: String(p.nick).slice(0, 20), canal: c }
-    if (c !== canal) quitarRemoto(id)
-    pintarPeers(); sincronizar()
+    const n = String(p.nick).slice(0, 20), c = limpio(String(p.canal || 'general')) || 'general'
+    if (!avisados.has(n) && (n === nick || Object.entries(peers).some(([k, q]) => k !== id && q.nick === n))) {
+      avisados.add(n); sys('Hay más de una persona con el apodo "' + n + '".')
+    }
+    peers[id] = { nick: n, canal: c, voz: SALAS_VOZ.includes(p.voz) ? p.voz : null }
+    if (peers[id].voz !== vozCanal) quitarRemoto(id)
+    pintarPeers(); pintarVoz(); sincronizar()
   })
   onCan(m => {
     if (m.t === 'estado' && m.e) Object.entries(m.e).forEach(([c, v]) => fusionar(c, v, false))
     if (m.t === 'set') fusionar(m.c, { ts: m.ts, del: m.del }, true)
     guardarCanales(); pintarCanales()
   })
-  onMsg((m, id) => recibir({ k: 't', c: m.c, t: String(m.t).slice(0, 4000) }, id))
-  const rx = {}
-  onFile((buf, id, meta) => {
-    const k = id + meta.fid, r = rx[k] = rx[k] || { parts: [], n: 0 }
-    r.parts.push(buf); r.n++
-    $('prog').style.width = (r.n / meta.total * 100) + '%'
-    if (r.n === meta.total) {
-      delete rx[k]; setTimeout(() => $('prog').style.width = 0, 500)
-      const mime = String(meta.mime || '')
-      recibir({ k: 'f', c: meta.c, nombre: String(meta.nombre).slice(0, 120), size: meta.size, mime, blob: new Blob(r.parts, { type: mime }) }, id)
+  onMsg((m, id) => {
+    const re = m.re && typeof m.re === 'object' ? { id: idLimpio(m.re.id), who: String(m.re.who).slice(0, 20), t: String(m.re.t).slice(0, 80) } : null
+    recibir({ k: 't', c: m.c, t: String(m.t).slice(0, 4000), id: idLimpio(m.id) || nuevoId(), re }, id)
+  })
+  onMod((m, id) => {
+    const mid = idLimpio(m.id)
+    if (m.op === 'e') tocar(mid, id, { t: String(m.t).slice(0, 4000), ed: true }).then(ok => ok && aplicarEdicion(mid, String(m.t).slice(0, 4000)))
+    if (m.op === 'd') tocar(mid, id, null).then(ok => ok && quitarMsg(mid))
+  })
+
+  // Archivos: los chicos llegan solos; los de más de 100 MB piden aceptación y se guardan directo al disco (Chrome/Edge)
+  onFile(async (buf, id, meta) => {
+    const k = id + meta.fid
+    let r = rx[k]
+    if (r && r.cancel) return
+    if (!r) {
+      r = rx[k] = { parts: [], n: 0, w: null, cola: Promise.resolve(), ui: null }
+      r.ui = xfer('Recibiendo ' + nombreOk(meta.nombre), () => cancelarRx(k, id, meta.fid))
     }
+    r.n++; r.ui.set(r.n / meta.total)
+    if (r.w) r.cola = r.cola.then(() => r.w.write(buf)).catch(() => {}); else r.parts.push(buf)
+    if (r.n === meta.total) {
+      delete rx[k]
+      const mime = mimeOk(meta.mime), base = { k: 'f', c: meta.c, nombre: nombreOk(meta.nombre), size: Number(meta.size) || 0, mime }
+      if (r.w) { await r.cola; try { await r.w.close() } catch {} r.ui.fin(); recibir({ ...base, blob: null, disco: true, id: nuevoId() }, id) }
+      else { r.ui.fin(); recibir({ ...base, blob: new Blob(r.parts, { type: mime }), id: nuevoId() }, id) }
+    }
+  })
+  onCtl((m, id) => {
+    const fid = idLimpio(m.fid)
+    if (m.t === 'oferta') ofertaCard(id, { fid, nombre: nombreOk(m.nombre), size: Number(m.size) || 0, total: Number(m.total) || 1, mime: m.mime, c: m.c })
+    const e = envios[fid]
+    if (m.t === 'ok' && e && e.dest) { e.dest.add(id); e.titulo('Enviando ' + e.nombre) }
+    if ((m.t === 'cancel' || m.t === 'no') && e && e.dest) { e.dest.delete(id); if (m.t === 'no' && !e.dest.size && ++e.no >= Object.keys(peers).length) e.cancelado = true }
+    if (m.t === 'cancel') { const r = rx[id + fid]; if (r) { delete rx[id + fid]; r.cancel = true; if (r.w) r.w.abort().catch(() => {}); if (r.ui) r.ui.fin(); sys((peers[id] ? peers[id].nick : 'Alguien') + ' canceló el envío.') } }
   })
   onFin(({ tipo }, id) => quitarRemoto(id, tipo))
   room.onPeerStream((stream, id, meta) => mostrarStream(stream, id, meta || {}))
 }
-function recibir(rec, id) {
+function recibir(rec, pid) {
   const c = limpio(String(rec.c || '')) || 'general'
-  if (estado[c]?.del) return
+  if (estado[c] && estado[c].del) return
   if (!estado[c]) { estado[c] = { ts: 0, del: false }; recalcular(); guardarCanales() }
-  rec.c = c; rec.who = peers[id]?.nick || 'alguien'
-  guardar(rec); ping()
+  rec.c = c; rec.who = (peers[pid] && peers[pid].nick) || 'alguien'; rec.de = pid; rec.ts = Date.now()
+  guardar(rec); ping(); avisarNuevo(rec)
   if (c === canal) pintarMsg(rec); else { noLeidos.add(c); pintarCanales() }
 }
 async function entrar(c) {
-  detener('voz'); detener('pantalla'); quitarTodosRemotos()
-  canal = c; noLeidos.delete(c)
+  canal = c; noLeidos.delete(c); ultimoDia = ''
   $('title').textContent = '# ' + c; $('msgs').innerHTML = ''; nuevos = 0; botonBajar()
   pintarCanales(); pintarPeers()
-  acts.sendPerfil({ nick, canal })
+  acts.sendPerfil(perfil())
   const h = await cargar(c)
   if (canal === c) { h.forEach(pintarMsg); bajar() }
 }
 
-/* ---------- Chat y archivos ---------- */
+/* ---------- Transferencias (progreso y cancelar) ---------- */
+function xfer(titulo, cancelar) {
+  const d = document.createElement('div'); d.className = 'xf'
+  const s = document.createElement('span'), b = document.createElement('div'), i = document.createElement('i'), x = document.createElement('button')
+  b.className = 'bar'; b.append(i); x.textContent = 'Cancelar'; x.onclick = cancelar
+  d.append(s, b, x); $('xfers').append(d); $('xfers').style.display = 'block'
+  const o = { t: titulo, set(p) { i.style.width = Math.round(p * 100) + '%'; s.textContent = o.t + ' ' + Math.round(p * 100) + '%' },
+    fin() { d.remove(); if (!$('xfers').children.length) $('xfers').style.display = 'none' } }
+  s.textContent = titulo
+  return o
+}
+function cancelarRx(k, id, fid) {
+  const r = rx[k]; if (!r) return
+  delete rx[k]; r.cancel = true; if (r.w) r.w.abort().catch(() => {}); r.ui.fin(); acts.sendCtl({ t: 'cancel', fid }, id)
+}
+function ofertaCard(id, m) {
+  const quien = (peers[id] && peers[id].nick) || 'alguien'
+  const card = document.createElement('div'); card.className = 'oferta'
+  card.append(document.createTextNode(quien + ' quiere enviarte ' + m.nombre + ' (' + fmt(m.size) + '). '))
+  card.append(btn('Aceptar y guardar', 'Aceptar archivo', async () => {
+    let w = null
+    if (window.showSaveFilePicker) {
+      try { w = await (await showSaveFilePicker({ suggestedName: m.nombre })).createWritable() } catch { return }
+    } else if (!confirm('Tu navegador no puede guardar directo al disco: el archivo se armará en memoria y puede colgar la pestaña. ¿Aceptar igual?')) return
+    const k = id + m.fid, r = rx[k] = { parts: [], n: 0, w, cola: Promise.resolve(), ui: null }
+    r.ui = xfer('Recibiendo ' + m.nombre, () => cancelarRx(k, id, m.fid))
+    acts.sendCtl({ t: 'ok', fid: m.fid }, id); card.closest('.m').remove()
+  }), btn('Rechazar', 'Rechazar archivo', () => { acts.sendCtl({ t: 'no', fid: m.fid }, id); card.closest('.m').remove() }))
+  add('sys', '', card)
+}
+
+/* ---------- Chat y envío de archivos ---------- */
 function mandar() {
   const t = $('txt').value.trim(); if (!t) return
-  const rec = { k: 't', c: canal, t, who: nick, me: true }
-  acts.sendMsg({ c: canal, t }); guardar(rec); pintarMsg(rec); $('txt').value = ''
+  const re = respuesta
+  const rec = { k: 't', c: canal, id: nuevoId(), ts: Date.now(), t, who: nick, me: true, re }
+  acts.sendMsg({ c: canal, t, id: rec.id, re }); guardar(rec); pintarMsg(rec)
+  $('txt').value = ''; $('replyX').onclick()
 }
 $('bSend').onclick = mandar
 $('txt').onkeydown = e => { if (e.key === 'Enter') mandar() }
 
 async function enviarArchivo(f) {
   if (!f) return
-  const c = canal, nombre = f.name || 'imagen.png'
-  const rec = { k: 'f', c, who: nick, me: true, nombre, size: f.size, mime: f.type, blob: f }
+  const c = canal, nombre = nombreOk(f.name || 'imagen.png'), mime = mimeOk(f.type), grande = f.size > GRANDE
+  const rec = { k: 'f', c, id: nuevoId(), ts: Date.now(), who: nick, me: true, nombre, size: f.size, mime, blob: f }
   guardar(rec); pintarMsg(rec)
-  const total = Math.max(1, Math.ceil(f.size / CHUNK)), meta = { fid: Math.random().toString(36).slice(2), total, nombre, size: f.size, mime: f.type, c }
-  for (let i = 0; i < total; i++) {
-    await acts.sendFile(await f.slice(i * CHUNK, (i + 1) * CHUNK).arrayBuffer(), null, meta)
-    $('prog').style.width = ((i + 1) / total * 100) + '%'
-  }
-  setTimeout(() => $('prog').style.width = 0, 500)
+  const total = Math.max(1, Math.ceil(f.size / CHUNK)), fid = nuevoId(), meta = { fid, total, nombre, size: f.size, mime, c }
+  const e = envios[fid] = { dest: grande ? new Set() : null, cancelado: false, no: 0, nombre }
+  const ui = xfer((grande ? 'Esperando que acepten ' : 'Enviando ') + nombre, () => { e.cancelado = true; acts.sendCtl({ t: 'cancel', fid }) })
+  e.titulo = t => { ui.t = t }
+  try {
+    if (grande) {
+      acts.sendCtl({ t: 'oferta', ...meta })
+      const t0 = Date.now()
+      while (!e.cancelado && !e.dest.size && Date.now() - t0 < 300000) await new Promise(r => setTimeout(r, 300))
+      if (e.cancelado || !e.dest.size) return
+    }
+    for (let i = 0; i < total && !e.cancelado; i++) {
+      const dest = e.dest ? [...e.dest] : null
+      if (dest && !dest.length) break
+      await acts.sendFile(await f.slice(i * CHUNK, (i + 1) * CHUNK).arrayBuffer(), dest, meta)
+      ui.set((i + 1) / total)
+    }
+  } finally { ui.fin(); delete envios[fid] }
 }
 $('bFile').onclick = () => $('file').click()
 $('file').onchange = e => { enviarArchivo(e.target.files[0]); e.target.value = '' }
@@ -402,12 +676,51 @@ document.addEventListener('dragover', e => { e.preventDefault(); document.body.c
 document.addEventListener('dragleave', e => { if (!e.relatedTarget) document.body.classList.remove('drag') })
 document.addEventListener('drop', e => { e.preventDefault(); document.body.classList.remove('drag'); [...e.dataTransfer.files].forEach(enviarArchivo) })
 
-/* ---------- Voz y pantalla: solo se envían a quienes están en tu mismo canal ---------- */
+/* ---------- Voz y pantalla (por canal de voz) ---------- */
+const restricciones = () => ({ echoCancellation: true, noiseSuppression: ruido, autoGainControl: true })
+const vig = {}
+function vigilar(key, stream) {
+  if (!ac) return
+  quitarVigia(key)
+  try {
+    const an = ac.createAnalyser(); an.fftSize = 512
+    const src = ac.createMediaStreamSource(stream); src.connect(an)
+    const buf = new Uint8Array(an.fftSize)
+    const iv = setInterval(() => { an.getByteTimeDomainData(buf); let m = 0; for (const v of buf) m = Math.max(m, Math.abs(v - 128)); marcar(key, m > 12) }, 150)
+    vig[key] = { iv, src }
+  } catch {}
+}
+function quitarVigia(key) { const h = vig[key]; if (h) { clearInterval(h.iv); try { h.src.disconnect() } catch {} delete vig[key]; marcar(key, false) } }
+function marcar(key, on) { document.querySelectorAll('[data-k="' + key + '"]').forEach(d => d.classList.toggle('hab', on)) }
+
+function aplicarMic() { const t = salida.voz && salida.voz.getAudioTracks()[0]; if (t) t.enabled = !muteado && (!ptt || pttOn) }
+function uiMedia() {
+  $('bMute').disabled = !salida.voz; $('bMute').textContent = muteado ? 'Activar mic' : 'Silenciar'
+  $('bPtt').hidden = !(ptt && salida.voz)
+  $('bScr').textContent = salida.pantalla ? 'Dejar de compartir' : 'Compartir pantalla'; $('bScr').classList.toggle('on', !!salida.pantalla)
+}
+async function iniciarMic() {
+  const a = restricciones()
+  try { salida.voz = await navigator.mediaDevices.getUserMedia({ audio: devMic ? { ...a, deviceId: { exact: devMic } } : a }) }
+  catch (err) { if (!devMic) throw err; devMic = ''; guardarAj(); salida.voz = await navigator.mediaDevices.getUserMedia({ audio: a }) }
+  aplicarMic(); vigilar('yo', salida.voz); sincronizar(); uiMedia()
+}
+async function unirVoz(s) {
+  if (vozCanal) await salirVoz()
+  vozCanal = s; pintarVoz(); uiMedia(); acts.sendPerfil(perfil())
+  try { await iniciarMic() } catch { sys('No se pudo usar el micrófono. Revisá el permiso del navegador.') }
+  sincronizar()
+}
+async function salirVoz() {
+  detener('voz'); detener('pantalla'); quitarTodosRemotos(); vozCanal = null
+  pintarVoz(); uiMedia(); acts.sendPerfil(perfil())
+}
 function sincronizar() {
+  if (!vozCanal) return
   Object.entries(peers).forEach(([id, p]) => ['voz', 'pantalla'].forEach(t => {
     const s = salida[t]; if (!s) return
-    const k = t + id, debe = p.canal === canal
-    if (debe && !enviados.has(k)) { room.addStream(s, id, { tipo: t, c: canal }); enviados.add(k) }
+    const k = t + id, debe = p.voz === vozCanal
+    if (debe && !enviados.has(k)) { room.addStream(s, id, { tipo: t, v: vozCanal }); enviados.add(k) }
     else if (!debe && enviados.has(k)) { try { room.removeStream(s, id) } catch {} enviados.delete(k) }
   }))
 }
@@ -415,23 +728,19 @@ function detener(t) {
   const s = salida[t]; if (!s) return
   ;[...enviados].filter(k => k.startsWith(t)).forEach(k => { try { room.removeStream(s, k.slice(t.length)) } catch {} enviados.delete(k) })
   s.getTracks().forEach(x => x.stop()); salida[t] = null
+  if (t === 'voz') quitarVigia('yo')
   acts.sendFin({ tipo: t }); uiMedia()
-}
-function uiMedia() {
-  $('bMic').textContent = salida.voz ? 'Salir de voz' : 'Activar voz'; $('bMic').classList.toggle('on', !!salida.voz)
-  $('bMute').disabled = !salida.voz; $('bMute').textContent = 'Silenciar'
-  $('bScr').textContent = salida.pantalla ? 'Dejar de compartir' : 'Compartir pantalla'; $('bScr').classList.toggle('on', !!salida.pantalla)
 }
 function mostrarStream(stream, id, meta) {
   const t = meta.tipo === 'pantalla' ? 'pantalla' : 'voz'
-  if (meta.c !== canal) return
+  if (!vozCanal || meta.v !== vozCanal) return
   quitarRemoto(id, t)
   const el = document.createElement(t === 'pantalla' ? 'video' : 'audio')
   el.srcObject = stream; el.autoplay = true; el.playsInline = true
+  if (devOut && el.setSinkId) el.setSinkId(devOut).catch(() => {})
   if (t === 'pantalla') { el.controls = true; $('stage').append(el); $('stage').style.display = 'flex' }
-  else { el.hidden = true; document.body.append(el) }
+  else { el.hidden = true; el.volume = volumenes[id] ?? 1; document.body.append(el); vigilar(id, stream) }
   if (el.play) el.play().catch(() => sys('Tocá la pantalla para activar el audio.'))
-  if (t === 'voz') el.volume = volumenes[id] ?? 1
   remotos[id] = remotos[id] || {}; remotos[id][t] = el
   pintarPeers()
 }
@@ -439,47 +748,83 @@ function quitarRemoto(id, t) {
   const r = remotos[id]; if (!r) return
   const ks = t ? [t] : Object.keys(r)
   ks.forEach(k => { if (r[k]) { r[k].remove(); delete r[k] } })
+  if (!t || t === 'voz') quitarVigia(id)
   if (!$('stage').children.length) $('stage').style.display = 'none'
   pintarPeers()
 }
 function quitarTodosRemotos() { Object.keys(remotos).forEach(id => quitarRemoto(id)) }
 
-$('bMic').onclick = async () => {
-  if (salida.voz) return detener('voz')
-  try {
-    salida.voz = await navigator.mediaDevices.getUserMedia({ audio: restricciones() })
-    sincronizar(); uiMedia()
-  } catch { sys('No se pudo usar el micrófono. Revisá el permiso del navegador.') }
-}
-const restricciones = () => ({ echoCancellation: true, noiseSuppression: ruido, autoGainControl: true })
+$('bMute').onclick = () => { muteado = !muteado; aplicarMic(); uiMedia() }
 $('bRuido').onclick = async () => {
   ruido = !ruido
   $('bRuido').textContent = 'Supresión de ruido: ' + (ruido ? 'sí' : 'no'); $('bRuido').classList.toggle('on', ruido)
   const t = salida.voz && salida.voz.getAudioTracks()[0]
   if (t) { try { await t.applyConstraints(restricciones()) } catch { sys('Tu navegador no deja cambiarlo en vivo: salí de voz y volvé a entrar.') } }
 }
-$('bMute').onclick = () => {
-  const t = salida.voz.getAudioTracks()[0]; t.enabled = !t.enabled
-  $('bMute').textContent = t.enabled ? 'Silenciar' : 'Activar mic'
-}
+const hablar = on => { pttOn = on; aplicarMic() }
+$('bPtt').onpointerdown = () => hablar(true)
+;['pointerup', 'pointerleave'].forEach(ev => $('bPtt').addEventListener(ev, () => hablar(false)))
+document.addEventListener('keydown', e => { if (ptt && salida.voz && !e.repeat && e.key.toLowerCase() === 'v' && !/INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) hablar(true) })
+document.addEventListener('keyup', e => { if (e.key.toLowerCase() === 'v') hablar(false) })
 $('bScr').onclick = async () => {
   if (salida.pantalla) return detener('pantalla')
+  if (!vozCanal) return sys('Entrá primero a un canal de voz para compartir pantalla.')
+  const [w, h, f] = CAL[calidad]
   try {
-    salida.pantalla = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 30 }, audio: true })
-    salida.pantalla.getVideoTracks()[0].onended = () => detener('pantalla')
+    salida.pantalla = await navigator.mediaDevices.getDisplayMedia({ video: { width: { ideal: w }, height: { ideal: h }, frameRate: { ideal: f } }, audio: true })
+    const vt = salida.pantalla.getVideoTracks()[0]
+    vt.onended = () => detener('pantalla'); if (calidad === 'max') vt.contentHint = 'motion'
     sincronizar(); uiMedia()
   } catch { salida.pantalla = null }
 }
 
-/* ---------- Sonido on/off ---------- */
+/* ---------- Sonido, avisos, ajustes y datos ---------- */
 $('snd').textContent = 'Sonido: ' + (sonido ? 'sí' : 'no')
 $('snd').onclick = () => {
   sonido = !sonido
   try { localStorage.setItem('rancho-sonido', sonido ? '1' : '0') } catch {}
   $('snd').textContent = 'Sonido: ' + (sonido ? 'sí' : 'no'); if (sonido) ping()
 }
+const uiAvisos = () => { $('avi').textContent = 'Avisos: ' + (avisos ? 'sí' : 'no') }
+uiAvisos()
+$('avi').onclick = async () => {
+  if (!avisos && 'Notification' in window) { if (Notification.permission !== 'granted') await Notification.requestPermission(); avisos = Notification.permission === 'granted' }
+  else avisos = false
+  guardarAj(); uiAvisos()
+}
+function llenar(sel, lista, actual) {
+  sel.innerHTML = ''; sel.append(new Option('Predeterminado', ''))
+  lista.forEach((d, i) => { if (d.deviceId && d.deviceId !== 'default') sel.append(new Option(d.label || 'Dispositivo ' + (i + 1), d.deviceId)) })
+  sel.value = actual
+}
+$('ajus').onclick = async () => {
+  try { const ds = await navigator.mediaDevices.enumerateDevices()
+    llenar($('selMic'), ds.filter(d => d.kind === 'audioinput'), devMic); llenar($('selOut'), ds.filter(d => d.kind === 'audiooutput'), devOut) } catch {}
+  $('selOut').disabled = !('setSinkId' in HTMLMediaElement.prototype)
+  $('selCal').value = calidad; $('chkPtt').checked = ptt
+  try { $('persist').textContent = 'Almacenamiento protegido contra borrado automático: ' + ((await navigator.storage.persisted()) ? 'sí' : 'no (el navegador puede borrar el historial si le falta espacio)') } catch {}
+  $('cfgd').showModal()
+}
+$('selMic').onchange = async () => { devMic = $('selMic').value; guardarAj(); if (salida.voz) { detener('voz'); try { await iniciarMic() } catch { sys('No se pudo usar ese micrófono.') } } }
+$('selOut').onchange = () => { devOut = $('selOut').value; guardarAj(); Object.values(remotos).forEach(r => Object.values(r).forEach(el => el.setSinkId && el.setSinkId(devOut).catch(() => {}))) }
+$('selCal').onchange = () => { calidad = $('selCal').value; guardarAj() }
+$('chkPtt').onchange = () => { ptt = $('chkPtt').checked; pttOn = false; guardarAj(); aplicarMic(); uiMedia() }
+$('bExp').onclick = async () => {
+  if (!db) return
+  const todo = await new Promise(r => { const q = db.transaction('m').objectStore('m').getAll(); q.onsuccess = () => r(q.result); q.onerror = () => r([]) })
+  const out = todo.map(({ blob, ...x }) => ({ ...x, adjunto: blob ? 'archivo no incluido en la exportación' : undefined }))
+  const a = document.createElement('a')
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(out, null, 1)], { type: 'application/json' }))
+  a.download = 'historial-' + new Date().toISOString().slice(0, 10) + '.json'; a.click()
+}
+$('bLimpiaC').onclick = () => { if (confirm('¿Borrar el historial de #' + canal + ' solo en este navegador?')) { borrarHist(canal); $('msgs').innerHTML = ''; ultimoDia = '' } }
+$('bLimpiaT').onclick = () => {
+  if (!db || !confirm('¿Borrar TODO el historial de esta sala en este navegador?')) return
+  try { db.transaction('m', 'readwrite').objectStore('m').clear() } catch {}
+  $('msgs').innerHTML = ''; ultimoDia = ''
+}
 
-/* ---------- Selector de emojis completo (se carga recién al abrirlo) ---------- */
+/* ---------- Emojis (selector completo, se carga al abrirlo) ---------- */
 let picker = null
 const EMO = 'https://cdn.jsdelivr.net/npm/emoji-picker-element@1.21.3'
 const EMO_ES = 'https://cdn.jsdelivr.net/npm/emoji-picker-element-data@^1/es/emojibase/data.json'
